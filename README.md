@@ -1,6 +1,10 @@
-# cowork
+# CoWork
 
-A new Flutter project.
+Departman bazlı İnsan Kaynakları ve Çalışan Yönetim Sistemi için Flutter tabanlı proje iskeleti.
+
+## Strateji ve Mimari
+Detaylı MVP stratejisi ve katmanlı mimari dosya yapısı için:
+- [PROJECT_STRATEGY.md](docs/PROJECT_STRATEGY.md)
 
 ## Getting Started
 
