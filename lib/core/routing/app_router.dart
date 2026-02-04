@@ -1,0 +1,89 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/dashboard/presentation/pages/admin_dashboard_page.dart';
+import '../../features/dashboard/presentation/pages/manager_dashboard_page.dart';
+import '../../features/dashboard/presentation/pages/employee_dashboard_page.dart';
+import 'guards.dart';
+import 'routes.dart';
+
+final goRouterProvider = Provider<GoRouter>((ref) {
+  // authUidProvider: uid stream
+  // sessionProvider: AppUser stream
+  final authUid = ref.watch(authUidProvider);
+  final session = ref.watch(sessionProvider);
+
+  return GoRouter(
+    initialLocation: Routes.login,
+    refreshListenable: GoRouterRefreshStream(
+      // router redirect tetiklensin diye stream'i dinletiyoruz
+      ref.watch(authUidStreamProvider),
+    ),
+    redirect: (context, state) {
+      final loc = state.uri.toString();
+
+      // Auth uid yükleniyorsa bekle
+      if (authUid.isLoading) return null;
+
+      final uid = authUid.asData?.value;
+
+      // Oturum yoksa login'e
+      if (uid == null) {
+        return loc == Routes.login ? null : Routes.login;
+      }
+
+      // Oturum var, profil çekiliyor olabilir
+      if (session.isLoading) return null;
+      if (session.hasError) return Routes.login;
+
+      final appUser = session.asData?.value;
+      if (appUser == null) return Routes.login;
+
+      // Login'deyse role home'a at
+      if (loc == Routes.login) return Guards.homeForRole(appUser.role);
+
+      // Yetkisiz erişim
+      if (!Guards.canAccess(appUser.role, loc)) {
+        return Guards.homeForRole(appUser.role);
+      }
+
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: Routes.login,
+        builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: Routes.admin,
+        builder: (context, state) => const AdminDashboardPage(),
+      ),
+      GoRoute(
+        path: Routes.manager,
+        builder: (context, state) => const ManagerDashboardPage(),
+      ),
+      GoRoute(
+        path: Routes.employee,
+        builder: (context, state) => const EmployeeDashboardPage(),
+      ),
+    ],
+  );
+});
+
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _sub;
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1079698068207",
+    "project_id": "cowork-e5788",
+    "storage_bucket": "cowork-e5788.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1079698068207:android:0d7e488668d18d7c6a411a",
+        "android_client_info": {
+          "package_name": "com.example.cowork"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7Q2ZqEEY1dOcxy2EF-_pD67BiWoQhi_A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
