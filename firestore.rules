@@ -39,11 +39,33 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/requests/$(requestId)).data.department_id;
     }
 
+    function bootstrapUserDoc() {
+      return getAfter(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isBootstrapAdmin() {
+      return isSignedIn()
+          && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+          && bootstrapUserDoc().data.role == 'admin';
+    }
+
+    function isBootstrapUserCreate(uid) {
+      return isSignedIn()
+          && request.auth.uid == uid
+          && !exists(/databases/$(database)/documents/users/$(uid))
+          && request.resource.data.role == 'admin'
+          && request.resource.data.department_id is string
+          && existsAfter(/databases/$(database)/documents/departments/$(request.resource.data.department_id))
+          && request.resource.data.created_at is timestamp
+          && request.resource.data.updated_at is timestamp;
+    }
+
     match /users/{uid} {
       allow read: if isAdmin()
           || (isManager() && sameDept(resource.data.department_id))
           || (isSignedIn() && request.auth.uid == uid);
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin() || isBootstrapUserCreate(uid);
+      allow update, delete: if isAdmin();
     }
 
     match /requests/{requestId} {
@@ -92,13 +114,19 @@ service cloud.firestore {
 
     match /audit_logs/{logId} {
       allow read: if isAdmin();
-      allow create: if isAdminOrManagerForDept(request.resource.data.department_id);
+      allow create: if isAdminOrManagerForDept(request.resource.data.department_id)
+          || (isSignedIn()
+              && request.resource.data.actor_user_id == request.auth.uid
+              && request.resource.data.entity_type == 'bootstrap'
+              && request.resource.data.action == 'create_admin');
       allow update, delete: if false;
     }
 
     match /departments/{deptId} {
       allow read: if isAdmin() || isManager();
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin()
+          || (isBootstrapAdmin() && request.resource.data.manager_id == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     match /tasks/{taskId} {

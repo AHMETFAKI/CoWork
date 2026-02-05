@@ -31,4 +31,69 @@ class AuthRemoteDataSource {
     if (data == null) return null;
     return AppUserModel.fromMap(uid, data);
   }
+
+  Future<void> createEmployerAccount({
+    required String fullName,
+    required String email,
+    required String password,
+    required String departmentName,
+    String? phone,
+  }) async {
+    UserCredential credential;
+    try {
+      credential = await auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException {
+      rethrow;
+    }
+
+    final uid = credential.user?.uid;
+    if (uid == null) {
+      throw StateError('User creation failed.');
+    }
+
+    final deptRef = firestore.collection('departments').doc();
+    final userRef = firestore.collection('users').doc(uid);
+    final logRef = firestore.collection('audit_logs').doc();
+
+    final batch = firestore.batch();
+    batch.set(deptRef, {
+      'name': departmentName,
+      'description': '',
+      'manager_id': uid,
+      'is_active': true,
+      'created_at': FieldValue.serverTimestamp(),
+      'updated_at': FieldValue.serverTimestamp(),
+    });
+    batch.set(userRef, {
+      'full_name': fullName,
+      'email': email,
+      'role': 'admin',
+      'department_id': deptRef.id,
+      'manager_id': null,
+      'phone': phone ?? '',
+      'is_active': true,
+      'created_at': FieldValue.serverTimestamp(),
+      'updated_at': FieldValue.serverTimestamp(),
+      'last_login_at': FieldValue.serverTimestamp(),
+    });
+    batch.set(logRef, {
+      'actor_user_id': uid,
+      'department_id': deptRef.id,
+      'entity_type': 'bootstrap',
+      'entity_id': uid,
+      'action': 'create_admin',
+      'metadata_json': '{"flow":"employer_signup"}',
+      'created_at': FieldValue.serverTimestamp(),
+    });
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      await credential.user?.delete();
+      rethrow;
+    }
+  }
 }

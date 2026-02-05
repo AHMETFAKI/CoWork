@@ -66,4 +66,27 @@ class AuthController extends AsyncNotifier<void> {
       await _repo.signOut();
     });
   }
+
+  Future<void> createEmployerAccount({
+    required String fullName,
+    required String email,
+    required String password,
+    required String departmentName,
+    String? phone,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _repo.createEmployerAccount(
+        fullName: fullName,
+        email: email,
+        password: password,
+        departmentName: departmentName,
+        phone: phone,
+      );
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
 }

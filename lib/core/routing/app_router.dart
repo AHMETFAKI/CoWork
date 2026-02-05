@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/employer_signup_page.dart';
 import '../../features/dashboard/presentation/pages/admin_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/manager_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/employee_dashboard_page.dart';
@@ -35,9 +36,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       final uid = authUid.asData?.value;
 
-      // Oturum yoksa login'e
+      // Oturum yoksa login veya employer signup serbest
       if (uid == null) {
-        return loc == Routes.login ? null : Routes.login;
+        if (loc == Routes.login || loc == Routes.employerSignup) return null;
+        return Routes.login;
       }
 
       // Oturum var, profil çekiliyor olabilir
@@ -61,6 +63,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.login,
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: Routes.employerSignup,
+        builder: (context, state) => const EmployerSignupPage(),
       ),
       GoRoute(
         path: Routes.admin,

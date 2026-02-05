@@ -1,5 +1,6 @@
 class Routes {
   static const login = '/login';
+  static const employerSignup = '/employer-signup';
 
   static const admin = '/admin';
   static const manager = '/manager';

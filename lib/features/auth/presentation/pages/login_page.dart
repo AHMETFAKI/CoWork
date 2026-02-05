@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../controllers/auth_controller.dart';
+import '../../../../core/routing/routes.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -14,27 +15,6 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
-  bool _testing = false;
-
-  Future<void> _testFirebase() async {
-    setState(() => _testing = true);
-    try {
-      await FirebaseFirestore.instance.doc('_meta/ping').get();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Firebase bağlantısı OK (Firestore yanıt verdi).')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Firebase test hatası: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _testing = false);
-      }
-    }
-  }
 
   @override
   void dispose() {
@@ -95,18 +75,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _testing ? null : _testFirebase,
-                child: _testing
-                    ? const SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-                    : const Text('Firebase Bağlantısını Test Et'),
+              child: TextButton(
+                onPressed: () => context.go(Routes.employerSignup),
+                child: const Text('Isveren misiniz? Kayit ol'),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             const Text(
               'Not: Girişten sonra Firestore users/{uid} dokümanı bulunmalı.',
               textAlign: TextAlign.center,

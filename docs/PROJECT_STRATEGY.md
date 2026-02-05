@@ -212,3 +212,407 @@ Görevler bireye atanır; departmana/toplu görev için **çalışan başına ko
 - 3 dashboard sayfası (dummy KPI kartları).
 - Requests create/list + Manager approval inbox (en hızlı “kurumsal demo”).
 
+
+
+## 8) Firestore koleksiyonlar ve ornek document sablonlari
+
+### departments/{deptId}
+```json
+{
+  "name": "Insan Kaynaklari",
+  "description": "IK operasyonlari",
+  "manager_id": "user_abc123",
+  "is_active": true,
+  "created_at": "SERVER_TIMESTAMP",
+  "updated_at": "SERVER_TIMESTAMP"
+}
+```
+
+### users/{userId}
+Kullanici id'si olarak FirebaseAuth uid kullanman onerilir.
+
+```json
+{
+  "full_name": "Ahmet Faki",
+  "email": "ahmet@example.com",
+  "role": "employee",
+  "department_id": "dept_hr",
+  "manager_id": "user_mgr01",
+  "phone": "+90...",
+  "is_active": true,
+  "created_at": "SERVER_TIMESTAMP",
+  "updated_at": "SERVER_TIMESTAMP",
+  "last_login_at": "SERVER_TIMESTAMP"
+}
+```
+
+### tasks/{taskId}
+```json
+{
+  "department_id": "dept_hr",
+  "assigned_to_user_id": "user_emp01",
+  "assigned_by_user_id": "user_mgr01",
+  "title": "Aday CV tarama",
+  "description": "Gelen basvurulari incele",
+  "status": "todo",
+  "priority": "medium",
+  "due_date": "2026-02-10T12:00:00Z",
+  "created_at": "SERVER_TIMESTAMP",
+  "updated_at": "SERVER_TIMESTAMP",
+  "completed_at": null
+}
+```
+
+### shifts/{shiftId}
+```json
+{
+  "department_id": "dept_hr",
+  "user_id": "user_emp01",
+  "start_at": "2026-02-05T06:00:00Z",
+  "end_at": "2026-02-05T14:00:00Z",
+  "location": "Ofis",
+  "shift_type": "day",
+  "notes": "",
+  "created_at": "SERVER_TIMESTAMP",
+  "updated_at": "SERVER_TIMESTAMP"
+}
+```
+
+### requests/{requestId}
+NOT: department_id zorunlu alan.
+
+```json
+{
+  "department_id": "dept_hr",
+  "created_by_user_id": "user_emp01",
+  "type": "leave",
+  "status": "pending",
+  "amount": null,
+  "currency": "TRY",
+  "start_date": "2026-02-10T00:00:00Z",
+  "end_date": "2026-02-12T00:00:00Z",
+  "category": null,
+  "reason": "Aile ziyareti",
+  "created_at": "SERVER_TIMESTAMP",
+  "updated_at": "SERVER_TIMESTAMP"
+}
+```
+
+Masraf ornegi:
+
+```json
+{
+  "department_id": "dept_hr",
+  "created_by_user_id": "user_emp01",
+  "type": "expense",
+  "status": "pending",
+  "amount": 245.5,
+  "currency": "TRY",
+  "start_date": null,
+  "end_date": null,
+  "category": "Yol",
+  "reason": "Sehir ici ulasim",
+  "created_at": "SERVER_TIMESTAMP",
+  "updated_at": "SERVER_TIMESTAMP"
+}
+```
+
+### requests/{requestId}/attachments/{attachmentId}
+```json
+{
+  "uploaded_by_user_id": "user_emp01",
+  "file_url": "gs://.../receipt.jpg",
+  "file_type": "image",
+  "created_at": "SERVER_TIMESTAMP"
+}
+```
+
+### requests/{requestId}/approvals/{approvalId}
+```json
+{
+  "reviewer_user_id": "user_mgr01",
+  "action": "approved",
+  "comment": "Uygun",
+  "reviewed_at": "SERVER_TIMESTAMP"
+}
+```
+
+### audit_logs/{logId}
+```json
+{
+  "actor_user_id": "user_mgr01",
+  "department_id": "dept_hr",
+  "entity_type": "request",
+  "entity_id": "req_001",
+  "action": "approve",
+  "metadata_json": "{\"status\":{\"old\":\"pending\",\"new\":\"approved\"}}",
+  "created_at": "SERVER_TIMESTAMP"
+}
+```
+
+## 9) Alan adlandirma ve zorunlu alanlar
+
+### Adlandirma kurallari
+- Koleksiyon ve alan adlari: `snake_case`
+- Dokuman id: `kebab-case` veya `snake_case` (tutarlilik oncelikli)
+- Tarih/saat alanlari: ISO-8601 string veya Firestore `Timestamp`
+- Audit metadata: tek satir JSON string (or: map) - standartlasma gerekli
+
+### Zorunlu alanlar (minimum)
+
+#### departments
+- `name`, `manager_id`, `is_active`, `created_at`, `updated_at`
+
+#### users
+- `full_name`, `email`, `role`, `department_id`, `manager_id`, `is_active`, `created_at`, `updated_at`
+
+#### tasks
+- `department_id`, `assigned_to_user_id`, `assigned_by_user_id`, `title`, `status`, `priority`, `created_at`, `updated_at`
+
+#### shifts
+- `department_id`, `user_id`, `start_at`, `end_at`, `shift_type`, `created_at`, `updated_at`
+
+#### requests
+- `department_id`, `created_by_user_id`, `type`, `status`, `created_at`, `updated_at`
+- `amount` ve `currency` sadece `expense` icin zorunlu
+- `start_date` ve `end_date` sadece `leave` icin zorunlu
+
+#### requests/{requestId}/attachments
+- `uploaded_by_user_id`, `file_url`, `file_type`, `created_at`
+
+#### requests/{requestId}/approvals
+- `reviewer_user_id`, `action`, `reviewed_at`
+
+#### audit_logs
+- `actor_user_id`, `department_id`, `entity_type`, `entity_id`, `action`, `created_at`
+
+## 10) Role/flow bazli zorunlu alanlar
+
+### Employee akislari
+
+#### Request olusturma (leave)
+- Zorunlu: `department_id`, `created_by_user_id`, `type`, `status`, `start_date`, `end_date`, `created_at`, `updated_at`
+- Opsiyonel: `reason`
+
+#### Request olusturma (expense)
+- Zorunlu: `department_id`, `created_by_user_id`, `type`, `status`, `amount`, `currency`, `category`, `created_at`, `updated_at`
+- Opsiyonel: `reason`, `start_date`, `end_date`
+
+#### Request attachment yukleme
+- Zorunlu: `uploaded_by_user_id`, `file_url`, `file_type`, `created_at`
+
+#### Task durumu guncelleme
+- Zorunlu: `status`, `updated_at`
+- Opsiyonel: `completed_at` (status `done` ise)
+
+#### Shift goruntuleme
+- Zorunlu: yok (read-only)
+
+### Manager akislari
+
+#### Task olusturma
+- Zorunlu: `department_id`, `assigned_to_user_id`, `assigned_by_user_id`, `title`, `status`, `priority`, `created_at`, `updated_at`
+- Opsiyonel: `description`, `due_date`
+
+#### Shift olusturma
+- Zorunlu: `department_id`, `user_id`, `start_at`, `end_at`, `shift_type`, `created_at`, `updated_at`
+- Opsiyonel: `location`, `notes`
+
+#### Request onay/ret
+- Zorunlu (approvals): `reviewer_user_id`, `action`, `reviewed_at`
+- Opsiyonel: `comment`
+- Not: Onay/ret sonrasi `requests.status` guncellenir ve `updated_at` atilir
+
+#### Department icin kullanici listeleme
+- Zorunlu: yok (read-only)
+
+### Admin akislari
+
+#### Department olusturma
+- Zorunlu: `name`, `manager_id`, `is_active`, `created_at`, `updated_at`
+- Opsiyonel: `description`
+
+#### User olusturma/aktiflik guncelleme
+- Zorunlu: `full_name`, `email`, `role`, `department_id`, `manager_id`, `is_active`, `created_at`, `updated_at`
+- Opsiyonel: `phone`, `last_login_at`
+
+#### Audit log yazimi (sistem)
+- Zorunlu: `actor_user_id`, `department_id`, `entity_type`, `entity_id`, `action`, `created_at`
+- Opsiyonel: `metadata_json`
+
+## 11) Firestore Security Rules taslagi (role + department)
+
+Asagidaki taslak, `users/{uid}` dokumanindan role ve department bilgisini okur ve tum yazmalarda department uyumu zorunlu tutar.
+
+```rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function role() {
+      return userDoc().data.role;
+    }
+
+    function deptId() {
+      return userDoc().data.department_id;
+    }
+
+    function isAdmin() {
+      return role() == 'admin';
+    }
+
+    function isManager() {
+      return role() == 'manager';
+    }
+
+    function isEmployee() {
+      return role() == 'employee';
+    }
+
+    function sameDept(resourceDept) {
+      return resourceDept == deptId();
+    }
+
+    // departments
+    match /departments/{deptId} {
+      allow read: if isSignedIn() && (isAdmin() || deptId == deptId());
+      allow create, update, delete: if isSignedIn() && isAdmin();
+    }
+
+    // users
+    match /users/{userId} {
+      allow read: if isSignedIn() && (
+        isAdmin() || userId == request.auth.uid || resource.data.department_id == deptId()
+      );
+
+      allow create, update: if isSignedIn() && (
+        isAdmin() || (userId == request.auth.uid && request.resource.data.department_id == deptId())
+      );
+
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // tasks
+    match /tasks/{taskId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.department_id == deptId());
+
+      allow create: if isSignedIn() && (isAdmin() || isManager())
+        && request.resource.data.department_id == deptId();
+
+      allow update: if isSignedIn() && (
+        isAdmin() || isManager() || request.auth.uid == resource.data.assigned_to_user_id
+      ) && resource.data.department_id == deptId();
+
+      allow delete: if isSignedIn() && (isAdmin() || isManager())
+        && resource.data.department_id == deptId();
+    }
+
+    // shifts
+    match /shifts/{shiftId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.department_id == deptId());
+
+      allow create, update, delete: if isSignedIn() && (isAdmin() || isManager())
+        && request.resource.data.department_id == deptId();
+    }
+
+    // requests
+    match /requests/{requestId} {
+      allow read: if isSignedIn() && (
+        isAdmin() || resource.data.department_id == deptId()
+      );
+
+      allow create: if isSignedIn() && (
+        isAdmin() || isEmployee() || isManager()
+      ) && request.resource.data.department_id == deptId()
+        && request.resource.data.created_by_user_id == request.auth.uid;
+
+      allow update: if isSignedIn() && (
+        isAdmin() || isManager() || request.auth.uid == resource.data.created_by_user_id
+      ) && resource.data.department_id == deptId();
+
+      allow delete: if isSignedIn() && isAdmin();
+
+      match /attachments/{attachmentId} {
+        allow read: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/requests/$(requestId)).data.department_id == deptId());
+
+        allow create: if isSignedIn() && (
+          isAdmin() || request.auth.uid == request.resource.data.uploaded_by_user_id
+        );
+
+        allow delete: if isSignedIn() && (
+          isAdmin() || request.auth.uid == request.resource.data.uploaded_by_user_id
+        );
+      }
+
+      match /approvals/{approvalId} {
+        allow read: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/requests/$(requestId)).data.department_id == deptId());
+
+        allow create: if isSignedIn() && (isAdmin() || isManager())
+          && request.resource.data.reviewer_user_id == request.auth.uid;
+
+        allow update, delete: if isSignedIn() && isAdmin();
+      }
+    }
+
+    // audit_logs
+    match /audit_logs/{logId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.department_id == deptId());
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+  }
+}
+```
+
+Notlar:
+- Bu taslakta `users/{uid}` dokumani yoksa erisim reddedilir; ilk kurulum icin admin kullanici olusturma ihtiyaci vardir.
+- `requests` guncellemede field-level kontrol yoktur; gerekiyorsa `request.resource.data.keys().hasOnly([...])` ile kisitlanabilir.
+- `approvals` yazimi sonrasi `requests.status` guncelleme ayri write islemi gerektirir (transaction/BatchWrite).
+
+## 12) Isveren onboarding akisi (plan)
+
+Amac: Login ekraninda "Isveren misiniz?" butonu ile ilk kurulum / kayit akisinin baslatilmasi. Ilk kayit ile admin kullanici + departman olusturulur ve ana ekrana yonlendirilir.
+
+### Akis ozeti
+1. Login ekraninda "Isveren misiniz?" butonu -> Isveren Kayit sayfasina gider.
+2. Isveren kayit formu:
+   - company_name (opsiyonel, ileride org koleksiyonu eklenebilir)
+   - full_name, email, password
+   - department_name (ilk departman)
+   - phone (opsiyonel)
+3. FirebaseAuth ile hesap olusturulur.
+4. Firestore yazimlari (batch/transaction):
+   - departments/{deptId} (ilk departman)
+   - users/{uid} (role=admin, department_id=deptId)
+   - audit_logs/{logId} (bootstrap kaydi)
+5. Session yuklenir ve admin dashboard'a yonlendirilir.
+
+### Kurallar / guvenlik
+- Bootstrap icin sinirli bir allowlist gerekir:
+  - users/{uid} create: sadece kendi uid ve role=admin ise (ilk kayit)
+  - departments create: sadece ayni requestteki admin tarafindan (ilk kurulum)
+- Ilk kurulum tamamlandiktan sonra normal kurallar devrede kalir.
+- Opsiyonel: "setup_done" flagi ile tekrarli bootstrap engellenir.
+
+### UI ve sayfalar
+- LoginPage: "Isveren misiniz?" butonu.
+- EmployerSignupPage: kayit formu + validasyon.
+- Basarili kayit sonrasi otomatik login + yonlendirme.
+
+### Gerekli eklemeler
+- Yeni route: `/employer-signup`
+- Yeni form ve controller/usecase
+- Firestore yazimlari icin repository methodu (createEmployerAccount)
+- Rules guncellemesi (bootstrap allowlist)
+
+### Riskler / notlar
+- Rule tarafinda "ilk admin" kriteri net degilse acik kapisi olabilir.
+- Minimum kurulum icin tek admin, tek departman mantigi.
+- Ileride `organizations` koleksiyonu eklenirse bu akis oraya tasinir.

@@ -22,4 +22,21 @@ class AuthRepositoryImpl implements AuthRepository {
     final model = await remote.getUserProfile(uid);
     return model?.toEntity();
   }
+
+  @override
+  Future<void> createEmployerAccount({
+    required String fullName,
+    required String email,
+    required String password,
+    required String departmentName,
+    String? phone,
+  }) {
+    return remote.createEmployerAccount(
+      fullName: fullName,
+      email: email,
+      password: password,
+      departmentName: departmentName,
+      phone: phone,
+    );
+  }
 }
