@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/routes.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
 import '../../domain/entities/request.dart';
 import '../controllers/request_controller.dart';
 
@@ -80,9 +81,9 @@ class _RequestCreatePageState extends ConsumerState<RequestCreatePage> {
     final needsDates = _type == RequestType.leave;
     final needsCategory = _type == RequestType.expense;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Request')),
-      body: ListView(
+    return AppScaffold(
+      title: 'Create Request',
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<RequestType>(

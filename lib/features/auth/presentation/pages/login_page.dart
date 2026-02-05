@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../controllers/auth_controller.dart';
 import '../../../../core/routing/routes.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -35,9 +36,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Giriş')),
-      body: Padding(
+    return AppScaffold(
+      title: 'Giris',
+      showMenu: false,
+      showBack: false,
+      child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [

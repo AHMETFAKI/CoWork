@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/auth_controller.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
 
 class EmployerSignupPage extends ConsumerStatefulWidget {
   const EmployerSignupPage({super.key});
@@ -72,9 +73,10 @@ class _EmployerSignupPageState extends ConsumerState<EmployerSignupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Isveren Kayit')),
-      body: ListView(
+    return AppScaffold(
+      title: 'Isveren Kayit',
+      showMenu: false,
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           TextField(

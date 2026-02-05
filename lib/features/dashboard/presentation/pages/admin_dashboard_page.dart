@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/domain/entities/app_user.dart';
 import '../../../../core/routing/routes.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
   const AdminDashboardPage({super.key});
@@ -13,17 +14,15 @@ class AdminDashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(sessionProvider).asData?.value;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin'),
-        actions: [
-          IconButton(
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      body: ListView(
+    return AppScaffold(
+      title: 'Admin',
+      actions: [
+        IconButton(
+          onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+          icon: const Icon(Icons.logout),
+        ),
+      ],
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(

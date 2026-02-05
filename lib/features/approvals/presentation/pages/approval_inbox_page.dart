@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../requests/domain/entities/request.dart';
 import '../../../requests/presentation/controllers/request_controller.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
 
 class ApprovalInboxPage extends ConsumerWidget {
   const ApprovalInboxPage({super.key});
@@ -12,9 +13,9 @@ class ApprovalInboxPage extends ConsumerWidget {
     final requests = ref.watch(departmentRequestsProvider);
     final state = ref.watch(requestControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Approval Inbox')),
-      body: requests.when(
+    return AppScaffold(
+      title: 'Approval Inbox',
+      child: requests.when(
         data: (items) {
           final pending = items
               .where((r) => r.status == RequestStatus.pending)
