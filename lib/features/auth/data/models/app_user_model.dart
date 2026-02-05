@@ -16,9 +16,9 @@ class AppUserModel {
   factory AppUserModel.fromMap(String uid, Map<String, dynamic> map) {
     return AppUserModel(
       uid: uid,
-      name: (map['name'] ?? '') as String,
+      name: (map['full_name'] ?? '') as String,
       role: (map['role'] ?? 'employee') as String,
-      departmentId: map['departmentId'] as String?,
+      departmentId: map['department_id'] as String?,
     );
   }
 

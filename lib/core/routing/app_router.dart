@@ -8,6 +8,10 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/dashboard/presentation/pages/admin_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/manager_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/employee_dashboard_page.dart';
+import '../../features/requests/presentation/pages/request_create_page.dart';
+import '../../features/requests/presentation/pages/request_list_page.dart';
+import '../../features/approvals/presentation/pages/approval_inbox_page.dart';
+import '../../features/users/presentation/pages/users_admin_page.dart';
 import 'guards.dart';
 import 'routes.dart';
 
@@ -69,6 +73,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.employee,
         builder: (context, state) => const EmployeeDashboardPage(),
+      ),
+      GoRoute(
+        path: Routes.requests,
+        builder: (context, state) => const RequestListPage(),
+      ),
+      GoRoute(
+        path: Routes.requestCreate,
+        builder: (context, state) => const RequestCreatePage(),
+      ),
+      GoRoute(
+        path: Routes.approvals,
+        builder: (context, state) => const ApprovalInboxPage(),
+      ),
+      GoRoute(
+        path: Routes.users,
+        builder: (context, state) => const UsersAdminPage(),
       ),
     ],
   );

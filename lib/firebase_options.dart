@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'cowork-e5788.firebasestorage.app',
     measurementId: 'G-S7234CQQYK',
   );
+
 }

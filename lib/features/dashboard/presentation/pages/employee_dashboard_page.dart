@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../../core/routing/routes.dart';
 
 class EmployeeDashboardPage extends ConsumerWidget {
   const EmployeeDashboardPage({super.key});
@@ -20,12 +22,19 @@ class EmployeeDashboardPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Text(
-          'Employee Dashboard\n'
-              'User: ${user?.name ?? '-'}',
-          textAlign: TextAlign.center,
-        ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            'Employee Dashboard\n'
+            'User: ${user?.name ?? '-'}',
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => context.go(Routes.requests),
+            child: const Text('My Requests'),
+          ),
+        ],
       ),
     );
   }
