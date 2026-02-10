@@ -574,7 +574,7 @@ service cloud.firestore {
 Notlar:
 - Bu taslakta `users/{uid}` dokumani yoksa erisim reddedilir; ilk kurulum icin admin kullanici olusturma ihtiyaci vardir.
 - `requests` guncellemede field-level kontrol yoktur; gerekiyorsa `request.resource.data.keys().hasOnly([...])` ile kisitlanabilir.
-- `approvals` yazimi sonrasi `requests.status` guncelleme ayri write islemi gerektirir (transaction/BatchWrite).
+- `approvals` yazimi sonrasi `requests.status` guncellenir ve `updated_at` atilir (transaction/BatchWrite).
 
 ## 12) Isveren onboarding akisi (plan)
 
@@ -616,3 +616,32 @@ Amac: Login ekraninda "Isveren misiniz?" butonu ile ilk kurulum / kayit akisinin
 - Rule tarafinda "ilk admin" kriteri net degilse acik kapisi olabilir.
 - Minimum kurulum icin tek admin, tek departman mantigi.
 - Ileride `organizations` koleksiyonu eklenirse bu akis oraya tasinir.
+
+## 13) Hiyerarşi ve Kullanıcı Görünürlüğü (Admin/Manager Filtreleme)
+
+Çoklu admin yapısında kullanıcıların birbirine karışmaması için aşağıdaki hiyerarşik yapı uygulanır:
+
+### Görünürlük Kuralları
+1.  **Adminler:** Sadece kendi oluşturdukları veya kendilerine bağlı olan kullanıcıları (`manager_id` alanı kendi `uid`'leri olanlar) görebilirler.
+2.  **Managerlar:** Sadece kendi departmanlarındaki (`department_id` eşleşen) kullanıcıları görebilirler.
+3.  **Sistem Geneli:** Adminler, diğer adminleri veya başka adminlere bağlı kullanıcıları göremezler.
+
+### Veri Yapısı Güncellemeleri
+-   `users` koleksiyonundaki her dokümanda `manager_id` alanı zorunludur.
+-   Bir admin kullanıcı oluşturulduğunda, bu adminin `uid`'si, oluşturulan kullanıcının `manager_id` alanına yazılır.
+
+### Kod Uygulaması (Presentation Layer)
+-   `users_admin_page.dart` içinde `StreamBuilder` kullanılırken, oturum açmış kullanıcının `uid` ve `role` bilgisine göre Firestore sorgusu filtrelenir:
+    -   Admin ise: `.where('manager_id', isEqualTo: currentUserUid)`
+    -   Manager ise: `.where('department_id', isEqualTo: currentUserDeptId)`
+
+### Firestore Rules Güncellemesi
+```rules
+match /users/{userId} {
+  allow read: if isSignedIn() && (
+    isAdmin() && (resource.data.manager_id == request.auth.uid || userId == request.auth.uid) ||
+    isManager() && resource.data.department_id == deptId() ||
+    userId == request.auth.uid
+  );
+}
+```
