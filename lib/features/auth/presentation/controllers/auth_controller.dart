@@ -6,6 +6,12 @@ import '../../data/datasources/auth_remote_ds.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../../users/data/datasources/user_remote_ds.dart';
+import '../../../users/data/repositories/user_repository_impl.dart';
+import '../../../users/domain/repositories/user_repository.dart';
+import '../../../departments/data/datasources/department_remote_ds.dart';
+import '../../../departments/data/repositories/department_repository_impl.dart';
+import '../../../departments/domain/repositories/department_repository.dart';
 
 // Firebase providers
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
@@ -21,6 +27,24 @@ final authRemoteDsProvider = Provider<AuthRemoteDataSource>((ref) {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(ref.watch(authRemoteDsProvider));
+});
+
+// Users data access
+final userRemoteDsProvider = Provider<UserRemoteDataSource>((ref) {
+  return UserRemoteDataSource(firestore: ref.watch(firestoreProvider));
+});
+
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  return UserRepositoryImpl(ref.watch(userRemoteDsProvider));
+});
+
+// Departments data access
+final departmentRemoteDsProvider = Provider<DepartmentRemoteDataSource>((ref) {
+  return DepartmentRemoteDataSource(firestore: ref.watch(firestoreProvider));
+});
+
+final departmentRepositoryProvider = Provider<DepartmentRepository>((ref) {
+  return DepartmentRepositoryImpl(ref.watch(departmentRemoteDsProvider));
 });
 
 // UID stream + provider

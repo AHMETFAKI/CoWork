@@ -12,7 +12,8 @@ import '../../features/dashboard/presentation/pages/employee_dashboard_page.dart
 import '../../features/requests/presentation/pages/request_create_page.dart';
 import '../../features/requests/presentation/pages/request_list_page.dart';
 import '../../features/approvals/presentation/pages/approval_inbox_page.dart';
-import '../../features/users/presentation/pages/users_admin_page.dart';
+import '../../features/users/presentation/pages/users_page.dart';
+import '../../features/departments/presentation/pages/departments_page.dart';
 import 'guards.dart';
 import 'routes.dart';
 
@@ -94,7 +95,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.users,
-        builder: (context, state) => const UsersAdminPage(),
+        builder: (context, state) => const UsersPage(),
+      ),
+      GoRoute(
+        path: Routes.departments,
+        builder: (context, state) => const DepartmentsPage(),
       ),
     ],
   );

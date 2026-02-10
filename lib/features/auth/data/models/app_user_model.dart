@@ -5,12 +5,14 @@ class AppUserModel {
   final String name;
   final String role; // "admin" | "manager" | "employee"
   final String? departmentId;
+  final String? createdByUserId;
 
   AppUserModel({
     required this.uid,
     required this.name,
     required this.role,
     required this.departmentId,
+    required this.createdByUserId,
   });
 
   factory AppUserModel.fromMap(String uid, Map<String, dynamic> map) {
@@ -19,6 +21,7 @@ class AppUserModel {
       name: (map['full_name'] ?? '') as String,
       role: (map['role'] ?? 'employee') as String,
       departmentId: map['department_id'] as String?,
+      createdByUserId: map['created_by_user_id'] as String?,
     );
   }
 
@@ -34,6 +37,7 @@ class AppUserModel {
       name: name,
       role: parsedRole,
       departmentId: departmentId,
+      createdByUserId: createdByUserId,
     );
   }
 }

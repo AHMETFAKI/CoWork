@@ -21,7 +21,8 @@ class Guards {
       return role == AppRole.admin || role == AppRole.manager;
     }
     if (location.startsWith(Routes.requests)) return true;
-    if (location.startsWith(Routes.users)) return role == AppRole.admin;
+    if (location.startsWith(Routes.users)) return true;
+    if (location.startsWith(Routes.departments)) return role == AppRole.admin;
     return true;
   }
 }

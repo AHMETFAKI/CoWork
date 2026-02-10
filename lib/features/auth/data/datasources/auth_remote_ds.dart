@@ -73,6 +73,7 @@ class AuthRemoteDataSource {
       'role': 'admin',
       'department_id': deptRef.id,
       'manager_id': null,
+      'created_by_user_id': uid,
       'phone': phone ?? '',
       'is_active': true,
       'created_at': FieldValue.serverTimestamp(),

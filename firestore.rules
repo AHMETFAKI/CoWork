@@ -27,8 +27,16 @@ service cloud.firestore {
       return isSignedIn() && role() == 'manager';
     }
 
+    function isEmployee() {
+      return isSignedIn() && role() == 'employee';
+    }
+
     function sameDept(deptId) {
       return departmentId() != null && departmentId() == deptId;
+    }
+
+    function creatorId() {
+      return isSignedIn() ? userData().created_by_user_id : null;
     }
 
     function isAdminOrManagerForDept(deptId) {
@@ -61,10 +69,16 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isAdmin()
-          || (isManager() && sameDept(resource.data.department_id))
-          || (isSignedIn() && request.auth.uid == uid);
-      allow create: if isAdmin() || isBootstrapUserCreate(uid);
+      allow read: if (isSignedIn() && request.auth.uid == uid)
+          || (isAdmin() && resource.data.created_by_user_id == request.auth.uid)
+          || (isManager()
+              && (
+                resource.data.manager_id == request.auth.uid
+                || (resource.data.role == 'admin' && resource.id == creatorId())
+              )
+            )
+          || (isEmployee() && sameDept(resource.data.department_id));
+      allow create: if isBootstrapUserCreate(uid);
       allow update, delete: if isAdmin();
     }
 

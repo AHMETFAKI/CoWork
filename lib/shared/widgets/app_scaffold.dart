@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../core/routing/guards.dart';
 import '../../core/routing/routes.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/auth/domain/entities/app_user.dart';
 
 enum _AppMenuAction {
   home,
   requests,
   approvals,
   users,
+  departments,
   logout,
   login,
 }
@@ -21,6 +23,7 @@ class AppScaffold extends ConsumerWidget {
   final List<Widget>? actions;
   final bool showMenu;
   final bool showBack;
+  final bool showAppBar;
   final Widget? floatingActionButton;
   final FloatingActionButtonLocation? floatingActionButtonLocation;
 
@@ -31,6 +34,7 @@ class AppScaffold extends ConsumerWidget {
     this.actions,
     this.showMenu = true,
     this.showBack = true,
+    this.showAppBar = true,
     this.floatingActionButton,
     this.floatingActionButtonLocation,
   });
@@ -70,6 +74,11 @@ class AppScaffold extends ConsumerWidget {
           value: _AppMenuAction.users,
           child: Text('Kullanicilar'),
         ),
+        if (appUser.role == AppRole.admin)
+          const PopupMenuItem(
+            value: _AppMenuAction.departments,
+            child: Text('Departmanlar'),
+          ),
         const PopupMenuDivider(),
         const PopupMenuItem(
           value: _AppMenuAction.logout,
@@ -96,6 +105,9 @@ class AppScaffold extends ConsumerWidget {
               case _AppMenuAction.users:
                 context.go(Routes.users);
                 break;
+              case _AppMenuAction.departments:
+                context.go(Routes.departments);
+                break;
               case _AppMenuAction.logout:
                 await ref.read(authControllerProvider.notifier).signOut();
                 if (context.mounted) context.go(Routes.login);
@@ -110,11 +122,13 @@ class AppScaffold extends ConsumerWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        leading: canPop ? const BackButton() : null,
-        actions: appBarActions,
-      ),
+      appBar: showAppBar
+          ? AppBar(
+              title: Text(title),
+              leading: canPop ? const BackButton() : null,
+              actions: appBarActions,
+            )
+          : null,
       body: child,
       floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: floatingActionButtonLocation,

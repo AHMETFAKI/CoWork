@@ -10,4 +10,5 @@ class Routes {
   static const requestCreate = '/requests/create';
   static const approvals = '/approvals';
   static const users = '/users';
+  static const departments = '/departments';
 }
