@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Basics ----
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userData() {
+      return isSignedIn()
+          ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+          : null;
+    }
+
+    function role() {
+      return isSignedIn() ? userData().role : null;
+    }
+
+    function departmentId() {
+      return isSignedIn() ? userData().department_id : null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && role() == 'admin';
+    }
+
+    function isManager() {
+      return isSignedIn() && role() == 'manager';
+    }
+
+    function sameDept(deptId) {
+      return departmentId() != null && departmentId() == deptId;
+    }
+
+    function isAdminOrManagerForDept(deptId) {
+      return isAdmin() || (isManager() && sameDept(deptId));
+    }
+
+    function requestDept(requestId) {
+      return get(/databases/$(database)/documents/requests/$(requestId)).data.department_id;
+    }
+
+    // ---- Users ----
+    match /users/{docId} {
+
+      // Admin: her kullanıcıyı görebilir
+      // Manager: kendi departmanını görebilir
+      // Signed-in: sadece manager_id’si kendisi olanları görür (istersen kaldırabilirsin)
+      allow read: if isAdmin()
+        || (isManager() && sameDept(resource.data.department_id))
+        || (isSignedIn() && resource.data.manager_id == request.auth.uid);
+
+      // Create: Admin veya Manager yeni kullanıcı/profil ekleyebilir.
+      // Create: Cloud Function kullanılır, client'tan create kapalı.
+      allow create: if false;
+
+      // Update: Admin her şeyi günceller. Manager sadece kendi departmanındakileri.
+      allow update: if isAdmin()
+        || (isManager() && sameDept(resource.data.department_id))
+        // ayrıca, update’te created_at değiştirilmesin
+        && request.resource.data.created_at == resource.data.created_at
+        && request.resource.data.updated_at is timestamp;
+
+      allow delete: if isAdmin();
+    }
+
+    // ---- Departments ----
+    match /departments/{deptId} {
+      allow read: if isAdmin() || isManager();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ---- Requests ----
+    match /requests/{requestId} {
+      allow read: if isAdmin()
+        || (isManager() && sameDept(resource.data.department_id))
+        || (isSignedIn() && resource.data.created_by_user_id == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.created_by_user_id == request.auth.uid
+        && request.resource.data.department_id == departmentId()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.type in ['leave', 'advance', 'expense']
+        && request.resource.data.created_at is timestamp
+        && request.resource.data.updated_at is timestamp;
+
+      allow update: if (
+          isAdminOrManagerForDept(resource.data.department_id)
+          || (isSignedIn()
+              && resource.data.created_by_user_id == request.auth.uid
+              && request.resource.data.status == 'cancelled')
+        )
+        && request.resource.data.created_by_user_id == resource.data.created_by_user_id
+        && request.resource.data.department_id == resource.data.department_id
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.created_at == resource.data.created_at
+        && request.resource.data.status in ['pending', 'approved', 'rejected', 'cancelled']
+        && request.resource.data.updated_at is timestamp;
+
+      allow delete: if false;
+    }
+
+    // ---- Request approvals ----
+    match /request_approvals/{approvalId} {
+      allow read: if isAdmin()
+        || (isManager() && sameDept(requestDept(resource.data.request_id)));
+
+      allow create: if isAdminOrManagerForDept(requestDept(request.resource.data.request_id))
+        && request.resource.data.action in ['approved', 'rejected']
+        && request.resource.data.reviewed_at is timestamp;
+
+      allow update, delete: if false;
+    }
+
+    // ---- Audit logs ----
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() || isManager();
+      allow update, delete: if false;
+    }
+
+    // ---- Tasks ----
+    match /tasks/{taskId} {
+      allow read: if isAdmin()
+        || (isManager() && sameDept(resource.data.department_id))
+        || (isSignedIn() && resource.data.assigned_to_user_id == request.auth.uid);
+
+      allow create, update, delete: if isAdminOrManagerForDept(request.resource.data.department_id);
+    }
+
+    // ---- Shifts ----
+    match /shifts/{shiftId} {
+      allow read: if isAdmin()
+        || (isManager() && sameDept(resource.data.department_id))
+        || (isSignedIn() && resource.data.user_id == request.auth.uid);
+
+      allow create, update, delete: if isAdminOrManagerForDept(request.resource.data.department_id);
+    }
+  }
+}
