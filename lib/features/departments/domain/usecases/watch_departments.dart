@@ -6,5 +6,15 @@ class WatchDepartments {
 
   WatchDepartments(this.repository);
 
-  Stream<List<Department>> call() => repository.watchDepartments();
+  Stream<List<Department>> call({
+    required String uid,
+    required String role,
+    required String? departmentId,
+  }) {
+    return repository.watchDepartments(
+      uid: uid,
+      role: role,
+      departmentId: departmentId,
+    );
+  }
 }

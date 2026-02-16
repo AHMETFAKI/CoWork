@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:cowork/core/di/app_providers.dart';
 import 'package:cowork/features/auth/domain/entities/app_user.dart';
 import 'package:cowork/features/users/domain/entities/user_profile.dart';
 import 'package:cowork/features/users/domain/usecases/watch_users_for_session.dart';

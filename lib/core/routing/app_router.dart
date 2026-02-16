@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:cowork/core/di/app_providers.dart';
 import 'package:cowork/features/auth/presentation/pages/login_page.dart';
 import 'package:cowork/features/auth/presentation/pages/employer_signup_page.dart';
 import 'package:cowork/features/dashboard/presentation/pages/admin_dashboard_page.dart';

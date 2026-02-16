@@ -1,51 +1,17 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:typed_data';
 
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:cowork/core/di/app_providers.dart';
+import 'package:cowork/features/users/domain/entities/save_user_result.dart';
 import 'package:cowork/features/users/domain/entities/user_profile.dart';
-
-class SaveUserResult {
-  final bool success;
-  final bool alreadyExists;
-  final String? errorMessage;
-  final String? createdUid;
-
-  const SaveUserResult({
-    required this.success,
-    required this.alreadyExists,
-    required this.errorMessage,
-    required this.createdUid,
-  });
-
-  const SaveUserResult.success({String? createdUid})
-      : success = true,
-        alreadyExists = false,
-        errorMessage = null,
-        createdUid = createdUid;
-
-  const SaveUserResult.error(String message)
-      : success = false,
-        alreadyExists = false,
-        errorMessage = message,
-        createdUid = null;
-
-  const SaveUserResult.alreadyExists()
-      : success = false,
-        alreadyExists = true,
-        errorMessage = null,
-        createdUid = null;
-}
 
 final usersFormControllerProvider =
     AsyncNotifierProvider<UsersFormController, void>(UsersFormController.new);
 
 final usersFormFieldsProvider =
-    AutoDisposeNotifierProvider<UsersFormFieldsController, UsersFormFieldsState>(
+    NotifierProvider.autoDispose<UsersFormFieldsController, UsersFormFieldsState>(
         UsersFormFieldsController.new);
 
 class UsersFormController extends AsyncNotifier<void> {
@@ -74,115 +40,45 @@ class UsersFormController extends AsyncNotifier<void> {
       return const SaveUserResult.error('Department is required for this role.');
     }
 
-    final firestore = ref.read(firestoreProvider);
     state = const AsyncLoading();
     try {
-      final usersCol = firestore.collection('users');
-
-      if (docId.isNotEmpty) {
-        final docRef = usersCol.doc(docId);
-        final existing = await docRef.get();
-        if (!existing.exists) {
-          return const SaveUserResult.error('Selected user does not exist.');
-        }
-
-        final managerId = switch (role) {
-          'manager' => actorUid,
-          'employee' => selectedDeptManagerId,
-          _ => null,
-        };
-
-        final data = <String, dynamic>{
-          'full_name': fullName,
-          'email': email,
-          'role': role,
-          'department_id': departmentId,
-          'manager_id': managerId,
-          'phone': phone,
-          'is_active': isActive,
-          'updated_at': FieldValue.serverTimestamp(),
-        };
-
-        if (photoBytes != null) {
-          final photoUrl = await _uploadUserPhoto(docId, photoBytes);
-          data['photo_url'] = photoUrl;
-        }
-
-        final batch = firestore.batch();
-        batch.set(docRef, data, SetOptions(merge: true));
-
-        if (role == 'manager' && setDeptManager && departmentId != null) {
-          final deptRef = firestore.collection('departments').doc(departmentId);
-          batch.set(
-            deptRef,
-            {
-              'manager_id': docId,
-              'updated_at': FieldValue.serverTimestamp(),
-            },
-            SetOptions(merge: true),
-          );
-        }
-
-        await batch.commit();
-        state = const AsyncData(null);
-        return const SaveUserResult.success();
-      }
-
       if (email.isEmpty || fullName.isEmpty) {
         return const SaveUserResult.error('Full name and email are required.');
       }
-      if (password.trim().length < 6) {
+      if (docId.isEmpty && password.trim().length < 6) {
         return const SaveUserResult.error('Password must be at least 6 characters.');
       }
-      if (photoBytes == null) {
+      if (docId.isEmpty && photoBytes == null) {
         return const SaveUserResult.error('Photo is required.');
       }
 
-      final callable = FirebaseFunctions.instance.httpsCallable('createUserWithProfile');
-      final result = await callable.call({
-        'full_name': fullName,
-        'email': email,
-        'password': password,
-        'role': role,
-        'department_id': departmentId,
-        'phone': phone,
-        'is_active': isActive,
-        'set_dept_manager': setDeptManager,
-      });
-      final data = result.data;
-      final newUid = (data is Map && data['uid'] is String) ? data['uid'] as String : null;
-      if (newUid != null) {
-        final photoUrl = await _uploadUserPhoto(newUid, photoBytes);
-        await firestore.collection('users').doc(newUid).set(
-          {
-            'photo_url': photoUrl,
-            'updated_at': FieldValue.serverTimestamp(),
-          },
-          SetOptions(merge: true),
-        );
-      }
-
+      final repo = ref.read(userRepositoryProvider);
+      final result = await repo.saveUser(
+        actorUid: actorUid,
+        docId: docId,
+        fullName: fullName,
+        email: email,
+        password: password,
+        role: role,
+        departmentId: departmentId,
+        selectedDeptManagerId: selectedDeptManagerId,
+        phone: phone,
+        isActive: isActive,
+        setDeptManager: setDeptManager,
+        photoBytes: photoBytes,
+      );
       state = const AsyncData(null);
-      return SaveUserResult.success(createdUid: newUid);
-    } on FirebaseFunctionsException catch (e) {
-      state = const AsyncData(null);
-      if (e.code == 'already-exists') {
-        return const SaveUserResult.alreadyExists();
-      }
-      return SaveUserResult.error('Save failed: ${e.message ?? e.code}');
+      return result;
     } catch (e) {
       state = const AsyncData(null);
       return SaveUserResult.error('Save failed: $e');
     }
   }
 
-  Future<String> _uploadUserPhoto(String uid, Uint8List bytes) async {
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('user_avatars')
-        .child('$uid.jpg');
-    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-    return ref.getDownloadURL();
+  Future<UserProfile?> loadUserByEmail(String email) async {
+    if (email.trim().isEmpty) return null;
+    final repo = ref.read(userRepositoryProvider);
+    return repo.getUserByEmail(email.trim());
   }
 }
 
@@ -240,7 +136,7 @@ class UsersFormFieldsState {
 
 const _unset = Object();
 
-class UsersFormFieldsController extends AutoDisposeNotifier<UsersFormFieldsState> {
+class UsersFormFieldsController extends Notifier<UsersFormFieldsState> {
   late final TextEditingController docId;
   late final TextEditingController name;
   late final TextEditingController email;

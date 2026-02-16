@@ -1,20 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:cowork/features/requests/data/datasources/request_remote_ds.dart';
-import 'package:cowork/features/requests/data/repositories/request_repository_impl.dart';
+import 'package:cowork/core/di/app_providers.dart';
 import 'package:cowork/features/requests/domain/entities/request.dart';
 import 'package:cowork/features/requests/domain/repositories/request_repository.dart';
-
-final requestRemoteDsProvider = Provider<RequestRemoteDataSource>((ref) {
-  return RequestRemoteDataSource(
-    firestore: ref.watch(firestoreProvider),
-  );
-});
-
-final requestRepositoryProvider = Provider<RequestRepository>((ref) {
-  return RequestRepositoryImpl(ref.watch(requestRemoteDsProvider));
-});
 
 final myRequestsProvider = StreamProvider<List<Request>>((ref) {
   final user = ref.watch(sessionProvider).asData?.value;

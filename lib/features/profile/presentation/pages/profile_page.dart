@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cowork/core/di/app_providers.dart';
 import 'package:cowork/shared/widgets/app_scaffold.dart';
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cowork/shared/widgets/resolved_avatar.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -50,38 +50,11 @@ class _ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback = CircleAvatar(
+    return ResolvedAvatar(
+      photoUrl: photoUrl,
       radius: 36,
       backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-      child: const Icon(Icons.person_outline),
+      fallback: const Icon(Icons.person_outline),
     );
-
-    if (photoUrl == null || photoUrl!.isEmpty) {
-      return fallback;
-    }
-
-    if (photoUrl!.startsWith('http')) {
-      return CircleAvatar(
-        radius: 36,
-        backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-        backgroundImage: NetworkImage(photoUrl!),
-      );
-    }
-
-    if (photoUrl!.startsWith('gs://')) {
-      return FutureBuilder<String>(
-        future: FirebaseStorage.instance.refFromURL(photoUrl!).getDownloadURL(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return fallback;
-          return CircleAvatar(
-            radius: 36,
-            backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-            backgroundImage: NetworkImage(snapshot.data!),
-          );
-        },
-      );
-    }
-
-    return fallback;
   }
 }

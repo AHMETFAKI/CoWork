@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:cowork/core/routing/routes.dart';
+import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:cowork/shared/ui/feedback/app_feedback.dart';
 import 'package:cowork/shared/widgets/app_scaffold.dart';
+import 'package:cowork/shared/widgets/async_elevated_button.dart';
 import 'package:cowork/shared/widgets/atmosphere_background.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -14,8 +16,7 @@ class LoginPage extends ConsumerStatefulWidget {
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage>
-    with SingleTickerProviderStateMixin {
+class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProviderStateMixin {
   final _email = TextEditingController();
   final _pass = TextEditingController();
   late final AnimationController _controller;
@@ -51,9 +52,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
     ref.listen<AsyncValue<void>>(authControllerProvider, (prev, next) {
       if (next.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Giriş hatası: ${next.error}')),
-        );
+        showErrorSnackBar(context, 'Giris hatasi: ${next.error}');
       }
     });
 
@@ -117,22 +116,15 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: state.isLoading
-                                ? null
-                                : () {
-                                    ref.read(authControllerProvider.notifier).signIn(
-                                          _email.text.trim(),
-                                          _pass.text,
-                                        );
-                                  },
-                            child: state.isLoading
-                                ? const SizedBox(
-                                    height: 18,
-                                    width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Text('Giris Yap'),
+                          child: AsyncElevatedButton(
+                            loading: state.isLoading,
+                            onPressed: () {
+                              ref.read(authControllerProvider.notifier).signIn(
+                                    _email.text.trim(),
+                                    _pass.text,
+                                  );
+                            },
+                            child: const Text('Giris Yap'),
                           ),
                         ),
                         const SizedBox(height: 12),

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
 
 import 'package:cowork/features/auth/data/models/app_user_model.dart';
 
@@ -47,6 +49,7 @@ class AuthRemoteDataSource {
     required String password,
     required String departmentName,
     String? phone,
+    Uint8List? photoBytes,
   }) async {
     UserCredential credential;
     try {
@@ -72,6 +75,7 @@ class AuthRemoteDataSource {
       'name': departmentName,
       'description': '',
       'manager_id': uid,
+      'created_by_user_id': uid,
       'is_active': true,
       'created_at': FieldValue.serverTimestamp(),
       'updated_at': FieldValue.serverTimestamp(),
@@ -105,5 +109,22 @@ class AuthRemoteDataSource {
       await credential.user?.delete();
       rethrow;
     }
+
+    if (photoBytes != null) {
+      final photoUrl = await _uploadUserPhoto(uid, photoBytes);
+      await userRef.set(
+        {
+          'photo_url': photoUrl,
+          'updated_at': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    }
+  }
+
+  Future<String> _uploadUserPhoto(String uid, Uint8List bytes) async {
+    final ref = FirebaseStorage.instance.ref().child('user_avatars').child('$uid.jpg');
+    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    return ref.getDownloadURL();
   }
 }

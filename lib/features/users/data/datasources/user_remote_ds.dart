@@ -1,13 +1,24 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
+import 'package:cowork/features/users/data/models/save_user_result_model.dart';
 import 'package:cowork/features/users/data/models/user_profile_model.dart';
 
 class UserRemoteDataSource {
   final FirebaseFirestore firestore;
+  final FirebaseFunctions functions;
+  final FirebaseStorage storage;
 
-  UserRemoteDataSource({required this.firestore});
+  UserRemoteDataSource({
+    required this.firestore,
+    FirebaseFunctions? functions,
+    FirebaseStorage? storage,
+  })  : functions = functions ?? FirebaseFunctions.instance,
+        storage = storage ?? FirebaseStorage.instance;
 
   Stream<List<UserProfileModel>> watchUsersForSession({
     required String uid,
@@ -96,5 +107,119 @@ class UserRemoteDataSource {
     final data = doc.data();
     if (data == null) return null;
     return UserProfileModel.fromMap(doc.id, data);
+  }
+
+  Future<UserProfileModel?> getUserByEmail(String email) async {
+    final snap =
+        await firestore.collection('users').where('email', isEqualTo: email).limit(1).get();
+    if (snap.docs.isEmpty) return null;
+    final doc = snap.docs.first;
+    return UserProfileModel.fromMap(doc.id, doc.data());
+  }
+
+  Future<SaveUserResultModel> saveUser({
+    required String actorUid,
+    required String docId,
+    required String fullName,
+    required String email,
+    required String password,
+    required String role,
+    required String? departmentId,
+    required String? selectedDeptManagerId,
+    required String phone,
+    required bool isActive,
+    required bool setDeptManager,
+    required Uint8List? photoBytes,
+  }) async {
+    try {
+      final usersCol = firestore.collection('users');
+
+      if (docId.isNotEmpty) {
+        final docRef = usersCol.doc(docId);
+        final existing = await docRef.get();
+        if (!existing.exists) {
+          return const SaveUserResultModel.error('Selected user does not exist.');
+        }
+
+        final managerId = switch (role) {
+          'manager' => actorUid,
+          'employee' => selectedDeptManagerId,
+          _ => null,
+        };
+
+        final data = <String, dynamic>{
+          'full_name': fullName,
+          'email': email,
+          'role': role,
+          'department_id': departmentId,
+          'manager_id': managerId,
+          'phone': phone,
+          'is_active': isActive,
+          'updated_at': FieldValue.serverTimestamp(),
+        };
+
+        if (photoBytes != null) {
+          final photoUrl = await _uploadUserPhoto(docId, photoBytes);
+          data['photo_url'] = photoUrl;
+        }
+
+        final batch = firestore.batch();
+        batch.set(docRef, data, SetOptions(merge: true));
+
+        if (role == 'manager' && setDeptManager && departmentId != null) {
+          final deptRef = firestore.collection('departments').doc(departmentId);
+          batch.set(
+            deptRef,
+            {
+              'manager_id': docId,
+              'updated_at': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          );
+        }
+
+        await batch.commit();
+        return const SaveUserResultModel.success();
+      }
+
+      final callable = functions.httpsCallable('createUserWithProfile');
+      final result = await callable.call({
+        'full_name': fullName,
+        'email': email,
+        'password': password,
+        'role': role,
+        'department_id': departmentId,
+        'phone': phone,
+        'is_active': isActive,
+        'set_dept_manager': setDeptManager,
+      });
+      final data = result.data;
+      final newUid = (data is Map && data['uid'] is String) ? data['uid'] as String : null;
+      if (newUid != null && photoBytes != null) {
+        final photoUrl = await _uploadUserPhoto(newUid, photoBytes);
+        await firestore.collection('users').doc(newUid).set(
+          {
+            'photo_url': photoUrl,
+            'updated_at': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
+      }
+
+      return SaveUserResultModel.success(createdUid: newUid);
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'already-exists') {
+        return const SaveUserResultModel.alreadyExists();
+      }
+      return SaveUserResultModel.error('Save failed: ${e.message ?? e.code}');
+    } catch (e) {
+      return SaveUserResultModel.error('Save failed: $e');
+    }
+  }
+
+  Future<String> _uploadUserPhoto(String uid, Uint8List bytes) async {
+    final ref = storage.ref().child('user_avatars').child('$uid.jpg');
+    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    return ref.getDownloadURL();
   }
 }

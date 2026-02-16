@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:cowork/core/di/app_providers.dart';
 import 'package:cowork/core/routing/routes.dart';
 import 'package:cowork/shared/widgets/app_scaffold.dart';
 
@@ -15,12 +15,6 @@ class EmployeeDashboardPage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Employee',
-      actions: [
-        IconButton(
-          onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
-          icon: const Icon(Icons.logout),
-        ),
-      ],
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [

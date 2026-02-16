@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:cowork/core/di/app_providers.dart';
+import 'package:cowork/features/auth/domain/entities/app_user.dart';
 import 'package:cowork/features/departments/domain/entities/department.dart';
 import 'package:cowork/features/departments/domain/usecases/create_department.dart';
 import 'package:cowork/features/departments/domain/usecases/watch_departments.dart';
@@ -15,7 +16,20 @@ final createDepartmentUseCaseProvider = Provider<CreateDepartment>((ref) {
 });
 
 final departmentsStreamProvider = StreamProvider<List<Department>>((ref) {
-  return ref.watch(watchDepartmentsUseCaseProvider).call();
+  final session = ref.watch(sessionProvider).asData?.value;
+  if (session == null) return const Stream.empty();
+
+  final role = switch (session.role) {
+    AppRole.admin => 'admin',
+    AppRole.manager => 'manager',
+    AppRole.employee => 'employee',
+  };
+
+  return ref.watch(watchDepartmentsUseCaseProvider).call(
+        uid: session.uid,
+        role: role,
+        departmentId: session.departmentId,
+      );
 });
 
 final departmentsFormControllerProvider =
@@ -36,10 +50,17 @@ class DepartmentsFormController extends AsyncNotifier<void> {
 
     state = const AsyncLoading();
     try {
+      final session = ref.read(sessionProvider).asData?.value;
+      if (session == null) {
+        state = const AsyncData(null);
+        return 'Oturum bilgisi bulunamadi.';
+      }
+
       await ref.read(createDepartmentUseCaseProvider).call(
             name: name.trim(),
             description: description.trim(),
             isActive: isActive,
+            createdByUserId: session.uid,
           );
       state = const AsyncData(null);
       return null;
@@ -51,7 +72,7 @@ class DepartmentsFormController extends AsyncNotifier<void> {
 }
 
 final departmentsFormFieldsProvider =
-    AutoDisposeNotifierProvider<DepartmentsFormFieldsController, DepartmentsFormFieldsState>(
+    NotifierProvider.autoDispose<DepartmentsFormFieldsController, DepartmentsFormFieldsState>(
         DepartmentsFormFieldsController.new);
 
 class DepartmentsFormFieldsState {
@@ -69,7 +90,7 @@ class DepartmentsFormFieldsState {
 }
 
 class DepartmentsFormFieldsController
-    extends AutoDisposeNotifier<DepartmentsFormFieldsState> {
+    extends Notifier<DepartmentsFormFieldsState> {
   late final TextEditingController name;
   late final TextEditingController description;
 

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cowork/features/requests/domain/entities/request.dart';
 import 'package:cowork/features/requests/presentation/controllers/request_controller.dart';
+import 'package:cowork/shared/ui/dialogs/optional_note_dialog.dart';
+import 'package:cowork/shared/ui/feedback/app_feedback.dart';
 import 'package:cowork/shared/widgets/app_scaffold.dart';
 
 class ApprovalInboxPage extends ConsumerWidget {
@@ -69,40 +71,15 @@ class ApprovalInboxPage extends ConsumerWidget {
           );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Update failed: $e')),
-      );
+      showErrorSnackBar(context, 'Update failed: $e');
     }
   }
 
   Future<String?> _askNote(BuildContext context, RequestStatus status) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String?>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(status == RequestStatus.approved ? 'Approve' : 'Reject'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: 'Note (optional)'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(null),
-              child: const Text('Skip'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(
-                controller.text.trim().isEmpty ? null : controller.text.trim(),
-              ),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+    return showOptionalNoteDialog(
+      context,
+      title: status == RequestStatus.approved ? 'Approve' : 'Reject',
     );
-    controller.dispose();
-    return result;
   }
 }
 

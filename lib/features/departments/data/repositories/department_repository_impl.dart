@@ -8,9 +8,17 @@ class DepartmentRepositoryImpl implements DepartmentRepository {
   DepartmentRepositoryImpl(this.remote);
 
   @override
-  Stream<List<Department>> watchDepartments() {
+  Stream<List<Department>> watchDepartments({
+    required String uid,
+    required String role,
+    required String? departmentId,
+  }) {
     return remote
-        .watchDepartments()
+        .watchDepartments(
+          uid: uid,
+          role: role,
+          departmentId: departmentId,
+        )
         .map((items) => items.map((model) => model.toEntity()).toList());
   }
 
@@ -19,11 +27,13 @@ class DepartmentRepositoryImpl implements DepartmentRepository {
     required String name,
     required String description,
     required bool isActive,
+    required String createdByUserId,
   }) {
     return remote.createDepartment(
       name: name,
       description: description,
       isActive: isActive,
+      createdByUserId: createdByUserId,
     );
   }
 }

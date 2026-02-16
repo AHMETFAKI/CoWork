@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cowork/shared/widgets/async_outlined_button.dart';
 
 class DepartmentFormSection extends StatelessWidget {
   final TextEditingController name;
@@ -45,15 +46,10 @@ class DepartmentFormSection extends StatelessWidget {
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
-            onPressed: saving ? null : onSubmit,
-            child: saving
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Departman Olustur'),
+          child: AsyncOutlinedButton(
+            loading: saving,
+            onPressed: onSubmit,
+            child: const Text('Departman Olustur'),
           ),
         ),
       ],

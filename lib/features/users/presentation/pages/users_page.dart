@@ -1,19 +1,17 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:cowork/shared/widgets/app_scaffold.dart';
+import 'package:cowork/shared/ui/dialogs/confirm_dialog.dart';
+import 'package:cowork/shared/ui/feedback/app_feedback.dart';
+import 'package:cowork/shared/utils/image_picker_utils.dart';
 import 'package:cowork/features/users/presentation/widgets/user_form_section.dart';
 import 'package:cowork/features/users/presentation/widgets/users_list_section.dart';
 import 'package:cowork/features/users/domain/entities/user_profile.dart';
-import 'package:cowork/features/users/data/models/user_profile_model.dart';
 import 'package:cowork/features/users/presentation/controllers/users_controller.dart';
 import 'package:cowork/features/users/presentation/controllers/users_form_controller.dart';
-import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:cowork/features/departments/presentation/controllers/departments_controller.dart';
+import 'package:cowork/shared/widgets/photo_source_sheet.dart';
 
 class UsersPage extends ConsumerStatefulWidget {
   const UsersPage({super.key});
@@ -23,8 +21,6 @@ class UsersPage extends ConsumerStatefulWidget {
 }
 
 class _UsersPageState extends ConsumerState<UsersPage> {
-  final _picker = ImagePicker();
-
   Future<void> _saveUser() async {
     final fields = ref.read(usersFormFieldsProvider.notifier);
     final fieldsState = ref.read(usersFormFieldsProvider);
@@ -45,45 +41,28 @@ class _UsersPageState extends ConsumerState<UsersPage> {
     if (!mounted) return;
 
     if (result.alreadyExists) {
-      final shouldLoad = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Kullanıcı zaten var'),
-          content: const Text('Bu email zaten kayıtlı. Profili yükleyip düzenlemek ister misin?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Hayır'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Evet, yükle'),
-            ),
-          ],
-        ),
+      final shouldLoad = await showConfirmDialog(
+        context,
+        title: 'Kullanici zaten var',
+        content: 'Bu email zaten kayitli. Profili yukleyip duzenlemek ister misin?',
+        cancelText: 'Hayir',
+        confirmText: 'Evet, yukle',
       );
-      if (shouldLoad == true) {
-        final snap = await ref
-            .read(firestoreProvider)
-            .collection('users')
-            .where('email', isEqualTo: fields.email.text.trim())
-            .limit(1)
-            .get();
-        if (snap.docs.isNotEmpty) {
-          _fillFromDoc(snap.docs.first);
+      if (shouldLoad) {
+        final user = await ref
+            .read(usersFormControllerProvider.notifier)
+            .loadUserByEmail(fields.email.text.trim());
+        if (user != null) {
+          _selectUser(user);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profil bulunamadı.')),
-          );
+          showErrorSnackBar(context, 'Profil bulunamadi.');
         }
       }
       return;
     }
 
     if (!result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.errorMessage ?? 'Save failed.')),
-      );
+      showErrorSnackBar(context, result.errorMessage ?? 'Save failed.');
       return;
     }
 
@@ -92,63 +71,23 @@ class _UsersPageState extends ConsumerState<UsersPage> {
       fields.password.clear();
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('User saved.')),
-    );
+    showSuccessSnackBar(context, 'User saved.');
   }
 
   void _clearForm() {
     ref.read(usersFormFieldsProvider.notifier).clearForm();
   }
 
-  Future<void> _pickPhoto(ImageSource source) async {
-    final file = await _picker.pickImage(
-      source: source,
-      imageQuality: 85,
-      maxWidth: 1024,
-    );
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    if (!mounted) return;
-    ref.read(usersFormFieldsProvider.notifier).setPhotoBytes(bytes);
-  }
-
   Future<void> _choosePhotoSource() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Kamera'),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galeri'),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
+    final source = await showPhotoSourceSheet(context);
     if (source == null) return;
-    await _pickPhoto(source);
+    final bytes = await pickImageBytes(source: source);
+    if (bytes == null || !mounted) return;
+    ref.read(usersFormFieldsProvider.notifier).setPhotoBytes(bytes);
   }
 
   Future<void> _selectUser(UserProfile user) async {
     ref.read(usersFormFieldsProvider.notifier).fillFromUser(user);
-  }
-
-  void _fillFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
-    if (data == null) return;
-    final model = UserProfileModel.fromMap(doc.id, data);
-    _selectUser(model.toEntity());
   }
 
   @override
@@ -186,8 +125,7 @@ class _UsersPageState extends ConsumerState<UsersPage> {
             onNew: _clearForm,
             onSave: _saveUser,
             onPickPhoto: _choosePhotoSource,
-            onClearPhoto: () =>
-                ref.read(usersFormFieldsProvider.notifier).clearPhoto(),
+            onClearPhoto: () => ref.read(usersFormFieldsProvider.notifier).clearPhoto(),
             onRoleChanged: fields.applyRole,
             onDeptChanged: fields.setDept,
             onDeptManagerResolved: fields.setDeptManager,

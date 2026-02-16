@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:cowork/core/routing/routes.dart';
 import 'package:cowork/shared/widgets/app_scaffold.dart';
+import 'package:cowork/shared/ui/feedback/app_feedback.dart';
+import 'package:cowork/shared/widgets/async_elevated_button.dart';
 import 'package:cowork/features/requests/domain/entities/request.dart';
 import 'package:cowork/features/requests/presentation/controllers/request_controller.dart';
 
@@ -62,15 +64,11 @@ class _RequestCreatePageState extends ConsumerState<RequestCreatePage> {
         category: category,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Request created.')),
-      );
+      showSuccessSnackBar(context, 'Request created.');
       context.go(Routes.requests);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Create failed: $e')),
-      );
+      showErrorSnackBar(context, 'Create failed: $e');
     }
   }
 
@@ -167,15 +165,10 @@ class _RequestCreatePageState extends ConsumerState<RequestCreatePage> {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: state.isLoading ? null : _submit,
-              child: state.isLoading
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Submit'),
+            child: AsyncElevatedButton(
+              loading: state.isLoading,
+              onPressed: _submit,
+              child: const Text('Submit'),
             ),
           ),
         ],

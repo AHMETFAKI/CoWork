@@ -1,6 +1,7 @@
 import 'package:cowork/features/auth/domain/entities/app_user.dart';
 import 'package:cowork/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cowork/features/auth/data/datasources/auth_remote_ds.dart';
+import 'dart:typed_data';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remote;
@@ -35,6 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String departmentName,
     String? phone,
+    Uint8List? photoBytes,
   }) {
     return remote.createEmployerAccount(
       fullName: fullName,
@@ -42,6 +44,7 @@ class AuthRepositoryImpl implements AuthRepository {
       password: password,
       departmentName: departmentName,
       phone: phone,
+      photoBytes: photoBytes,
     );
   }
 }

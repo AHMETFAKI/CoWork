@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cowork/shared/widgets/app_scaffold.dart';
+import 'package:cowork/shared/ui/feedback/app_feedback.dart';
 import 'package:cowork/features/departments/presentation/widgets/department_form_section.dart';
 import 'package:cowork/features/departments/presentation/widgets/department_list_section.dart';
 import 'package:cowork/features/departments/presentation/controllers/departments_controller.dart';
@@ -28,16 +29,12 @@ class _DepartmentsPageState extends ConsumerState<DepartmentsPage> {
     if (!mounted) return;
     setState(() => _deptSaving = false);
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+      showErrorSnackBar(context, error);
       return;
     }
 
     ref.read(departmentsFormFieldsProvider.notifier).clearForm();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Departman olusturuldu.')),
-    );
+    showSuccessSnackBar(context, 'Departman olusturuldu.');
   }
 
   @override

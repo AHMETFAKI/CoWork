@@ -1,15 +1,14 @@
 import 'dart:typed_data';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:cowork/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:cowork/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:cowork/shared/ui/feedback/app_feedback.dart';
+import 'package:cowork/shared/utils/image_picker_utils.dart';
+import 'package:cowork/shared/widgets/async_elevated_button.dart';
 import 'package:cowork/shared/widgets/app_scaffold.dart';
+import 'package:cowork/shared/widgets/photo_source_sheet.dart';
 
 class EmployerSignupPage extends ConsumerStatefulWidget {
   const EmployerSignupPage({super.key});
@@ -19,7 +18,6 @@ class EmployerSignupPage extends ConsumerStatefulWidget {
 }
 
 class _EmployerSignupPageState extends ConsumerState<EmployerSignupPage> {
-  final _picker = ImagePicker();
   final _fullName = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -39,43 +37,12 @@ class _EmployerSignupPageState extends ConsumerState<EmployerSignupPage> {
     super.dispose();
   }
 
-  Future<void> _pickPhoto(ImageSource source) async {
-    final file = await _picker.pickImage(
-      source: source,
-      imageQuality: 85,
-      maxWidth: 1024,
-    );
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    if (!mounted) return;
-    setState(() => _photoBytes = bytes);
-  }
-
   Future<void> _choosePhotoSource() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Kamera'),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galeri'),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
+    final source = await showPhotoSourceSheet(context);
     if (source == null) return;
-    await _pickPhoto(source);
+    final bytes = await pickImageBytes(source: source);
+    if (bytes == null || !mounted) return;
+    setState(() => _photoBytes = bytes);
   }
 
   Future<void> _submit() async {
@@ -86,56 +53,29 @@ class _EmployerSignupPageState extends ConsumerState<EmployerSignupPage> {
     final phone = _phone.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || deptName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lutfen tum zorunlu alanlari doldurun.')),
-      );
+      showErrorSnackBar(context, 'Lutfen tum zorunlu alanlari doldurun.');
       return;
     }
     if (_photoBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil fotografi zorunludur.')),
-      );
+      showErrorSnackBar(context, 'Profil fotografi zorunludur.');
       return;
     }
 
     setState(() => _saving = true);
     try {
-      final repo = ref.read(authRepositoryProvider) as AuthRepositoryImpl;
-      await repo.createEmployerAccount(
+      await ref.read(authControllerProvider.notifier).createEmployerAccount(
         fullName: name,
         email: email,
         password: password,
         departmentName: deptName,
         phone: phone.isEmpty ? null : phone,
+        photoBytes: _photoBytes,
       );
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null && _photoBytes != null) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('user_avatars')
-            .child('$uid.jpg');
-        await ref.putData(
-          _photoBytes!,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-        final photoUrl = await ref.getDownloadURL();
-        await FirebaseFirestore.instance.collection('users').doc(uid).set(
-          {
-            'photo_url': photoUrl,
-            'updated_at': FieldValue.serverTimestamp(),
-          },
-          SetOptions(merge: true),
-        );
-      }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kayit basarili. Yonlendiriliyorsunuz...')),
-      );
+      showSuccessSnackBar(context, 'Kayit basarili. Yonlendiriliyorsunuz...');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Kayit hatasi: $e')),
-      );
+      showErrorSnackBar(context, 'Kayit hatasi: $e');
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -189,15 +129,10 @@ class _EmployerSignupPageState extends ConsumerState<EmployerSignupPage> {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saving ? null : _submit,
-              child: _saving
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Kaydi Tamamla'),
+            child: AsyncElevatedButton(
+              loading: _saving,
+              onPressed: _submit,
+              child: const Text('Kaydi Tamamla'),
             ),
           ),
         ],

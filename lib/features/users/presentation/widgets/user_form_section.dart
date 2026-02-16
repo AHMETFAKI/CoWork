@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 import 'package:cowork/features/departments/domain/entities/department.dart';
+import 'package:cowork/shared/widgets/async_elevated_button.dart';
+import 'package:cowork/features/users/presentation/widgets/user_form_header.dart';
+import 'package:cowork/features/users/presentation/widgets/user_photo_picker_row.dart';
 import 'department_selector.dart';
 
 class UserFormSection extends StatelessWidget {
@@ -62,33 +64,12 @@ class UserFormSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Kullanici Kaydi',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            TextButton(
-              onPressed: saving ? null : onNew,
-              child: const Text('Yeni'),
-            )
-          ],
+        UserFormHeader(
+          saving: saving,
+          docId: docId.text,
+          onNew: onNew,
         ),
-        if (docId.text.isNotEmpty) ...[
-          const Text(
-            'Duzenleme modu',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'DocID: ${docId.text}',
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-        ],
-        _PhotoPickerRow(
+        UserPhotoPickerRow(
           photoBytes: photoBytes,
           photoUrl: photoUrl,
           onPickPhoto: onPickPhoto,
@@ -164,128 +145,13 @@ class UserFormSection extends StatelessWidget {
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton(
-            onPressed: saving ? null : onSave,
-            child: saving
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(docId.text.isEmpty ? 'Create' : 'Update'),
+          child: AsyncElevatedButton(
+            loading: saving,
+            onPressed: onSave,
+            child: Text(docId.text.isEmpty ? 'Create' : 'Update'),
           ),
         ),
       ],
     );
-  }
-}
-
-class _PhotoPickerRow extends StatelessWidget {
-  final Uint8List? photoBytes;
-  final String? photoUrl;
-  final VoidCallback onPickPhoto;
-  final VoidCallback onClearPhoto;
-
-  const _PhotoPickerRow({
-    required this.photoBytes,
-    required this.photoUrl,
-    required this.onPickPhoto,
-    required this.onClearPhoto,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _PhotoAvatar(
-          photoBytes: photoBytes,
-          photoUrl: photoUrl,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Profil Fotografi',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: onPickPhoto,
-                    icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                    label: const Text('Sec'),
-                  ),
-                  const SizedBox(width: 8),
-                  if (photoBytes != null ||
-                      (photoUrl != null && photoUrl!.isNotEmpty))
-                    TextButton(
-                      onPressed: onClearPhoto,
-                      child: const Text('Kaldir'),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PhotoAvatar extends StatelessWidget {
-  final Uint8List? photoBytes;
-  final String? photoUrl;
-
-  const _PhotoAvatar({
-    required this.photoBytes,
-    required this.photoUrl,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = CircleAvatar(
-      radius: 28,
-      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-      child: const Icon(Icons.person_outline),
-    );
-
-    if (photoBytes != null) {
-      return CircleAvatar(
-        radius: 28,
-        backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-        backgroundImage: MemoryImage(photoBytes!),
-      );
-    }
-
-    if (photoUrl == null || photoUrl!.isEmpty) {
-      return fallback;
-    }
-
-    if (photoUrl!.startsWith('http')) {
-      return CircleAvatar(
-        radius: 28,
-        backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-        backgroundImage: NetworkImage(photoUrl!),
-      );
-    }
-
-    if (photoUrl!.startsWith('gs://')) {
-      return FutureBuilder<String>(
-        future: FirebaseStorage.instance.refFromURL(photoUrl!).getDownloadURL(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return fallback;
-          return CircleAvatar(
-            radius: 28,
-            backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-            backgroundImage: NetworkImage(snapshot.data!),
-          );
-        },
-      );
-    }
-
-    return fallback;
   }
 }

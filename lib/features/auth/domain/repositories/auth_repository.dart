@@ -1,4 +1,5 @@
 import 'package:cowork/features/auth/domain/entities/app_user.dart';
+import 'dart:typed_data';
 
 abstract class AuthRepository {
   Stream<String?> authUidChanges();
@@ -12,5 +13,6 @@ abstract class AuthRepository {
     required String password,
     required String departmentName,
     String? phone,
+    Uint8List? photoBytes,
   });
 }
