@@ -52,7 +52,7 @@ const List<NavItem> adminNavItems = [
         route: Routes.shifts,
       ),
       NavSheetAction(
-        label: 'Olustur',
+        label: 'Giris/Cikis',
         icon: Icons.add_to_queue_outlined,
         route: Routes.shiftCreate,
       ),
@@ -75,5 +75,11 @@ const List<NavItem> adminNavItems = [
         route: Routes.departments,
       ),
     ],
+  ),
+  NavItem(
+    label: 'Ekibim',
+    icon: Icons.groups_outlined,
+    selectedIcon: Icons.groups,
+    route: Routes.team,
   ),
 ];

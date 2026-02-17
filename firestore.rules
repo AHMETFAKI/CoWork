@@ -155,14 +155,73 @@ service cloud.firestore {
       allow read: if isAdmin()
           || (isManager() && sameDept(resource.data.department_id))
           || (isSignedIn() && resource.data.assigned_to_user_id == request.auth.uid);
-      allow create, update, delete: if isAdminOrManagerForDept(request.resource.data.department_id);
+      allow create: if isAdminOrManagerForDept(request.resource.data.department_id)
+          && request.resource.data.department_id is string
+          && request.resource.data.assigned_to_user_id is string
+          && request.resource.data.assigned_by_user_id == request.auth.uid
+          && request.resource.data.title is string
+          && request.resource.data.description is string
+          && request.resource.data.status == 'todo'
+          && request.resource.data.priority in ['low', 'medium', 'high', 'urgent']
+          && request.resource.data.created_at is timestamp
+          && request.resource.data.updated_at is timestamp;
+
+      allow update: if isAdminOrManagerForDept(resource.data.department_id)
+          && request.resource.data.status in ['todo', 'in_progress', 'done', 'cancelled']
+          && request.resource.data.updated_at is timestamp
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'status',
+            'updated_at',
+          ]);
+
+      allow delete: if isAdminOrManagerForDept(resource.data.department_id);
     }
 
-    match /shifts/{shiftId} {
-      allow read: if isAdmin()
-          || (isManager() && sameDept(resource.data.department_id))
+    match /shift_attendance/{attendanceId} {
+      allow read: if (isAdmin() && sameDept(resource.data.department_id))
+          || (isManager()
+              && sameDept(resource.data.department_id)
+              && resource.data.user_role in ['manager', 'employee'])
           || (isSignedIn() && resource.data.user_id == request.auth.uid);
-      allow create, update, delete: if isAdminOrManagerForDept(request.resource.data.department_id);
+
+      allow create: if isSignedIn()
+          && request.resource.data.department_id == departmentId()
+          && request.resource.data.user_id == request.auth.uid
+          && request.resource.data.user_role == role()
+          && request.resource.data.event_type in ['check_in', 'check_out']
+          && request.resource.data.event_at is timestamp
+          && request.resource.data.source in ['link', 'qr']
+          && (request.resource.data.token_id == null || request.resource.data.token_id is string)
+          && request.resource.data.created_at is timestamp;
+
+      allow update, delete: if false;
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participant_ids;
+      allow create: if isSignedIn()
+          && request.auth.uid in request.resource.data.participant_ids
+          && request.resource.data.participant_ids is list
+          && request.resource.data.participant_ids.size() == 2
+          && request.resource.data.created_at is timestamp
+          && request.resource.data.updated_at is timestamp;
+      allow update: if isSignedIn()
+          && request.auth.uid in resource.data.participant_ids
+          && request.resource.data.participant_ids == resource.data.participant_ids
+          && request.resource.data.created_at == resource.data.created_at
+          && request.resource.data.updated_at is timestamp;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participant_ids;
+        allow create: if isSignedIn()
+            && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participant_ids
+            && request.resource.data.sender_user_id == request.auth.uid
+            && request.resource.data.text is string
+            && request.resource.data.created_at is timestamp
+            && request.resource.data.updated_at is timestamp;
+        allow update, delete: if false;
+      }
     }
   }
 }

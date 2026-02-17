@@ -21,6 +21,8 @@ import 'package:cowork/features/shifts/presentation/pages/shift_create_page.dart
 import 'package:cowork/features/audit_logs/presentation/pages/audit_logs_page.dart';
 import 'package:cowork/features/settings/presentation/pages/settings_page.dart';
 import 'package:cowork/features/profile/presentation/pages/profile_page.dart';
+import 'package:cowork/features/team/presentation/pages/team_list_page.dart';
+import 'package:cowork/features/team/presentation/pages/team_member_profile_page.dart';
 import 'guards.dart';
 import 'routes.dart';
 
@@ -135,6 +137,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.profile,
         builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: Routes.team,
+        builder: (context, state) => const TeamListPage(),
+      ),
+      GoRoute(
+        path: '${Routes.teamMember}/:uid',
+        builder: (context, state) {
+          final uid = state.pathParameters['uid'] ?? '';
+          return TeamMemberProfilePage(memberUid: uid);
+        },
       ),
     ],
   );

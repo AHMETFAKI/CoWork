@@ -11,9 +11,18 @@ import 'package:cowork/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cowork/features/departments/data/datasources/department_remote_ds.dart';
 import 'package:cowork/features/departments/data/repositories/department_repository_impl.dart';
 import 'package:cowork/features/departments/domain/repositories/department_repository.dart';
+import 'package:cowork/features/messages/data/datasources/messages_remote_ds.dart';
+import 'package:cowork/features/messages/data/repositories/messages_repository_impl.dart';
+import 'package:cowork/features/messages/domain/repositories/messages_repository.dart';
 import 'package:cowork/features/requests/data/datasources/request_remote_ds.dart';
 import 'package:cowork/features/requests/data/repositories/request_repository_impl.dart';
 import 'package:cowork/features/requests/domain/repositories/request_repository.dart';
+import 'package:cowork/features/shifts/data/datasources/shift_remote_ds.dart';
+import 'package:cowork/features/shifts/data/repositories/shift_repository_impl.dart';
+import 'package:cowork/features/shifts/domain/repositories/shift_repository.dart';
+import 'package:cowork/features/tasks/data/datasources/task_remote_ds.dart';
+import 'package:cowork/features/tasks/data/repositories/task_repository_impl.dart';
+import 'package:cowork/features/tasks/domain/repositories/task_repository.dart';
 import 'package:cowork/features/users/data/datasources/user_remote_ds.dart';
 import 'package:cowork/features/users/data/repositories/user_repository_impl.dart';
 import 'package:cowork/features/users/domain/repositories/user_repository.dart';
@@ -62,6 +71,33 @@ final requestRemoteDsProvider = Provider<RequestRemoteDataSource>((ref) {
 
 final requestRepositoryProvider = Provider<RequestRepository>((ref) {
   return RequestRepositoryImpl(ref.watch(requestRemoteDsProvider));
+});
+
+// Tasks
+final taskRemoteDsProvider = Provider<TaskRemoteDataSource>((ref) {
+  return TaskRemoteDataSource(firestore: ref.watch(firestoreProvider));
+});
+
+final taskRepositoryProvider = Provider<TaskRepository>((ref) {
+  return TaskRepositoryImpl(ref.watch(taskRemoteDsProvider));
+});
+
+// Shifts
+final shiftRemoteDsProvider = Provider<ShiftRemoteDataSource>((ref) {
+  return ShiftRemoteDataSource(firestore: ref.watch(firestoreProvider));
+});
+
+final shiftRepositoryProvider = Provider<ShiftRepository>((ref) {
+  return ShiftRepositoryImpl(ref.watch(shiftRemoteDsProvider));
+});
+
+// Messages
+final messagesRemoteDsProvider = Provider<MessagesRemoteDataSource>((ref) {
+  return MessagesRemoteDataSource(firestore: ref.watch(firestoreProvider));
+});
+
+final messagesRepositoryProvider = Provider<MessagesRepository>((ref) {
+  return MessagesRepositoryImpl(ref.watch(messagesRemoteDsProvider));
 });
 
 // Session

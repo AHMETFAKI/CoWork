@@ -22,7 +22,7 @@ class Guards {
       return role == AppRole.admin || role == AppRole.manager;
     }
     if (location.startsWith(Routes.shiftCreate)) {
-      return role == AppRole.admin || role == AppRole.manager;
+      return true;
     }
     if (location.startsWith(Routes.approvals)) {
       return role == AppRole.admin || role == AppRole.manager;
@@ -34,6 +34,7 @@ class Guards {
       return role == AppRole.admin;
     }
     if (location.startsWith(Routes.requests)) return true;
+    if (location.startsWith(Routes.team)) return true;
     if (location.startsWith(Routes.tasks)) return true;
     if (location.startsWith(Routes.shifts)) return true;
     if (location.startsWith(Routes.users)) return true;

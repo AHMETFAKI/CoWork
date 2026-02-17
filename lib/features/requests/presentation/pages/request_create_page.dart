@@ -6,6 +6,7 @@ import 'package:cowork/core/routing/routes.dart';
 import 'package:cowork/shared/widgets/app_scaffold.dart';
 import 'package:cowork/shared/ui/feedback/app_feedback.dart';
 import 'package:cowork/shared/widgets/async_elevated_button.dart';
+import 'package:cowork/shared/widgets/app_date_field.dart';
 import 'package:cowork/features/requests/domain/entities/request.dart';
 import 'package:cowork/features/requests/presentation/controllers/request_controller.dart';
 
@@ -23,6 +24,8 @@ class _RequestCreatePageState extends ConsumerState<RequestCreatePage> {
   final _startDate = TextEditingController();
   final _endDate = TextEditingController();
   final _category = TextEditingController();
+  DateTime? _startDateValue;
+  DateTime? _endDateValue;
   RequestType _type = RequestType.leave;
 
   @override
@@ -48,11 +51,21 @@ class _RequestCreatePageState extends ConsumerState<RequestCreatePage> {
     final currency = needsAmount && _currency.text.trim().isNotEmpty
         ? _currency.text.trim()
         : null;
-    final startDate = needsDates ? _parseDate(_startDate.text.trim()) : null;
-    final endDate = needsDates ? _parseDate(_endDate.text.trim()) : null;
+    final startDate = needsDates ? _startDateValue : null;
+    final endDate = needsDates ? _endDateValue : null;
     final category = needsCategory && _category.text.trim().isNotEmpty
         ? _category.text.trim()
         : null;
+
+    if (needsDates && (startDate == null || endDate == null)) {
+      showErrorSnackBar(context, 'Gecerli baslangic ve bitis tarihi girin.');
+      return;
+    }
+    if (needsDates && endDate!.isBefore(startDate!)) {
+      showErrorSnackBar(context, 'Bitis tarihi baslangic tarihinden once olamaz.');
+      return;
+    }
+
     try {
       await notifier.createRequest(
         type: _type,
@@ -117,20 +130,16 @@ class _RequestCreatePageState extends ConsumerState<RequestCreatePage> {
           ),
           if (needsDates) ...[
             const SizedBox(height: 12),
-            TextField(
+            AppDateField(
               controller: _startDate,
-              decoration: const InputDecoration(
-                labelText: 'Start Date (YYYY-MM-DD)',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'Start Date',
+              onDateChanged: (date) => _startDateValue = date,
             ),
             const SizedBox(height: 12),
-            TextField(
+            AppDateField(
               controller: _endDate,
-              decoration: const InputDecoration(
-                labelText: 'End Date (YYYY-MM-DD)',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'End Date',
+              onDateChanged: (date) => _endDateValue = date,
             ),
           ],
           if (needsAmount) ...[
@@ -176,14 +185,4 @@ class _RequestCreatePageState extends ConsumerState<RequestCreatePage> {
     );
   }
 
-  DateTime? _parseDate(String value) {
-    if (value.isEmpty) return null;
-    final parts = value.split('-');
-    if (parts.length != 3) return null;
-    final year = int.tryParse(parts[0]);
-    final month = int.tryParse(parts[1]);
-    final day = int.tryParse(parts[2]);
-    if (year == null || month == null || day == null) return null;
-    return DateTime(year, month, day);
-  }
 }

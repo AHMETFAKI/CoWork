@@ -34,4 +34,10 @@ const List<NavItem> employeeNavItems = [
     selectedIcon: Icons.checklist,
     route: Routes.tasks,
   ),
+  NavItem(
+    label: 'Ekibim',
+    icon: Icons.groups_outlined,
+    selectedIcon: Icons.groups,
+    route: Routes.team,
+  ),
 ];

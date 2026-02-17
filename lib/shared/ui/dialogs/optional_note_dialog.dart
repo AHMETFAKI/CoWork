@@ -7,31 +7,71 @@ Future<String?> showOptionalNoteDialog(
   String skipText = 'Skip',
   String saveText = 'Save',
 }) async {
-  final controller = TextEditingController();
-  final result = await showDialog<String?>(
+  return showDialog<String?>(
     context: context,
     builder: (dialogContext) {
-      return AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: labelText),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(null),
-            child: Text(skipText),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(
-              controller.text.trim().isEmpty ? null : controller.text.trim(),
-            ),
-            child: Text(saveText),
-          ),
-        ],
+      return _OptionalNoteDialog(
+        title: title,
+        labelText: labelText,
+        skipText: skipText,
+        saveText: saveText,
       );
     },
   );
-  controller.dispose();
-  return result;
+}
+
+class _OptionalNoteDialog extends StatefulWidget {
+  const _OptionalNoteDialog({
+    required this.title,
+    required this.labelText,
+    required this.skipText,
+    required this.saveText,
+  });
+
+  final String title;
+  final String labelText;
+  final String skipText;
+  final String saveText;
+
+  @override
+  State<_OptionalNoteDialog> createState() => _OptionalNoteDialogState();
+}
+
+class _OptionalNoteDialogState extends State<_OptionalNoteDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final note = _controller.text.trim();
+    Navigator.of(context).pop(note.isEmpty ? null : note);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        decoration: InputDecoration(labelText: widget.labelText),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: Text(widget.skipText),
+        ),
+        ElevatedButton(onPressed: _save, child: Text(widget.saveText)),
+      ],
+    );
+  }
 }
