@@ -32,6 +32,16 @@ final departmentsStreamProvider = StreamProvider<List<Department>>((ref) {
       );
 });
 
+final departmentsDirectoryStreamProvider = StreamProvider<List<Department>>((ref) {
+  final session = ref.watch(sessionProvider).asData?.value;
+  if (session == null) return const Stream.empty();
+
+  return ref.watch(departmentRepositoryProvider).watchDepartmentsForDirectory(
+        uid: session.uid,
+        createdByUserId: session.createdByUserId,
+      );
+});
+
 final departmentsFormControllerProvider =
     AsyncNotifierProvider<DepartmentsFormController, void>(DepartmentsFormController.new);
 

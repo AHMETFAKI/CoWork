@@ -58,10 +58,4 @@ const List<NavItem> managerNavItems = [
       ),
     ],
   ),
-  NavItem(
-    label: 'Ekibim',
-    icon: Icons.groups_outlined,
-    selectedIcon: Icons.groups,
-    route: Routes.team,
-  ),
 ];

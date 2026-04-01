@@ -71,12 +71,14 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if (isSignedIn() && request.auth.uid == uid)
           || (isAdmin() && resource.data.created_by_user_id == request.auth.uid)
+          || (isSignedIn() && resource.data.created_by_user_id == creatorId())
           || (isManager()
               && (
                 resource.data.manager_id == request.auth.uid
                 || (resource.data.role == 'admin' && resource.id == creatorId())
               )
             )
+          || (isEmployee() && resource.data.role == 'admin' && resource.id == creatorId())
           || (isEmployee() && sameDept(resource.data.department_id));
       allow create: if isBootstrapUserCreate(uid);
       allow update, delete: if isAdmin();
@@ -138,6 +140,7 @@ service cloud.firestore {
 
     match /departments/{deptId} {
       allow read: if (isAdmin() && resource.data.created_by_user_id == request.auth.uid)
+          || (isSignedIn() && resource.data.created_by_user_id == creatorId())
           || (isManager() && sameDept(deptId));
       allow create: if (isAdmin()
             && request.resource.data.created_by_user_id == request.auth.uid)

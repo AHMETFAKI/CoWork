@@ -24,62 +24,106 @@ class TeamMemberProfilePage extends ConsumerStatefulWidget {
 
 class _TeamMemberProfilePageState extends ConsumerState<TeamMemberProfilePage> {
   final _message = TextEditingController();
+  final _messagesScrollController = ScrollController();
 
   @override
   void dispose() {
     _message.dispose();
+    _messagesScrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final users = ref.watch(usersStreamProvider);
+    final users = ref.watch(usersDirectoryStreamProvider);
     final convoIdAsync = ref.watch(conversationIdProvider(widget.memberUid));
     final messageState = ref.watch(messagesControllerProvider);
     final session = ref.watch(sessionProvider).asData?.value;
 
-    return AppScaffold(
-      title: 'Profil',
-      child: users.when(
-        data: (list) {
-          UserProfile? member;
-          for (final item in list) {
-            if (item.id == widget.memberUid) {
-              member = item;
-              break;
-            }
+    return users.when(
+      data: (list) {
+        UserProfile? member;
+        for (final item in list) {
+          if (item.id == widget.memberUid) {
+            member = item;
+            break;
           }
+        }
 
-          if (member == null) {
-            return const Center(child: Text('Kullanici bulunamadi.'));
-          }
+        if (member == null) {
+          return const AppScaffold(
+            title: 'Sohbet',
+            child: Center(child: Text('Kullanici bulunamadi.')),
+          );
+        }
 
-          return Column(
-            children: [
-              const SizedBox(height: 16),
-              Center(
+        return AppScaffold(
+          title: member.fullName,
+          showNavigationBar: false,
+          showDrawer: false,
+          showProfileAction: false,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
                 child: ResolvedAvatar(
                   photoUrl: member.photoUrl,
-                  radius: 44,
+                  radius: 14,
                   backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  fallback: const Icon(Icons.person_outline, size: 30),
+                  fallback: const Icon(Icons.person_outline, size: 16),
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(member.fullName, style: Theme.of(context).textTheme.titleLarge),
-              Text(member.role),
-              const SizedBox(height: 14),
+            ),
+          ],
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    ResolvedAvatar(
+                      photoUrl: member.photoUrl,
+                      radius: 16,
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      fallback: const Icon(Icons.person_outline, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        member.fullName,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      member.role,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
               Expanded(
                 child: convoIdAsync.when(
                   data: (conversationId) {
                     final messages = ref.watch(messagesStreamProvider(conversationId));
                     return messages.when(
                       data: (items) {
+                        _scrollToBottom();
                         if (items.isEmpty) {
-                          return const Center(child: Text('Henüz mesaj yok.'));
+                          return const Center(child: Text('Henuz mesaj yok.'));
                         }
                         return ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          controller: _messagesScrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           itemCount: items.length,
                           itemBuilder: (context, index) {
                             final item = items[index];
@@ -94,7 +138,7 @@ class _TeamMemberProfilePageState extends ConsumerState<TeamMemberProfilePage> {
                                   color: mine
                                       ? Theme.of(context).colorScheme.primaryContainer
                                       : Theme.of(context).colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(item.text),
                               ),
@@ -138,12 +182,31 @@ class _TeamMemberProfilePageState extends ConsumerState<TeamMemberProfilePage> {
                 ),
               ),
             ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
+          ),
+        );
+      },
+      loading: () => const AppScaffold(
+        title: 'Sohbet',
+        showNavigationBar: false,
+        showDrawer: false,
+        showProfileAction: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, _) => AppScaffold(
+        title: 'Sohbet',
+        showNavigationBar: false,
+        showDrawer: false,
+        showProfileAction: false,
+        child: Center(child: Text('Error: $err')),
       ),
     );
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_messagesScrollController.hasClients) return;
+      _messagesScrollController.jumpTo(_messagesScrollController.position.maxScrollExtent);
+    });
   }
 
   Future<void> _sendMessage(BuildContext context) async {
@@ -155,6 +218,7 @@ class _TeamMemberProfilePageState extends ConsumerState<TeamMemberProfilePage> {
             text: text,
           );
       _message.clear();
+      _scrollToBottom();
     } catch (e) {
       if (!context.mounted) return;
       showErrorSnackBar(context, 'Mesaj gonderilemedi: $e');

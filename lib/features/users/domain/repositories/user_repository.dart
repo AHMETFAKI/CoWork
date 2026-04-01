@@ -10,6 +10,11 @@ abstract class UserRepository {
     required String? createdByUserId,
   });
 
+  Stream<List<UserProfile>> watchUsersForDirectory({
+    required String uid,
+    required String? createdByUserId,
+  });
+
   Future<UserProfile?> getUserById(String uid);
   Future<UserProfile?> getUserByEmail(String email);
   Future<SaveUserResult> saveUser({

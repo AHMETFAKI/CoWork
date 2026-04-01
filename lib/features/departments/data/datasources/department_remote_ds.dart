@@ -38,6 +38,22 @@ class DepartmentRemoteDataSource {
     return const Stream.empty();
   }
 
+  Stream<List<DepartmentModel>> watchDepartmentsForDirectory({
+    required String uid,
+    required String? createdByUserId,
+  }) {
+    final companyAdminUid =
+        (createdByUserId != null && createdByUserId.isNotEmpty) ? createdByUserId : uid;
+    return firestore
+        .collection('departments')
+        .where('created_by_user_id', isEqualTo: companyAdminUid)
+        .orderBy('name')
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((doc) => DepartmentModel.fromMap(doc.id, doc.data())).toList(),
+        );
+  }
+
   Future<void> createDepartment({
     required String name,
     required String description,

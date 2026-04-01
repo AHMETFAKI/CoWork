@@ -27,6 +27,19 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Stream<List<UserProfile>> watchUsersForDirectory({
+    required String uid,
+    required String? createdByUserId,
+  }) {
+    return remote
+        .watchUsersForDirectory(
+          uid: uid,
+          createdByUserId: createdByUserId,
+        )
+        .map((items) => items.map((e) => e.toEntity()).toList());
+  }
+
+  @override
   Future<UserProfile?> getUserById(String uid) async {
     final model = await remote.getUserById(uid);
     return model?.toEntity();

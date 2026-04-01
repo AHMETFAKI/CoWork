@@ -26,3 +26,13 @@ final usersStreamProvider = StreamProvider<List<UserProfile>>((ref) {
         createdByUserId: session.createdByUserId,
       );
 });
+
+final usersDirectoryStreamProvider = StreamProvider<List<UserProfile>>((ref) {
+  final session = ref.watch(sessionProvider).asData?.value;
+  if (session == null) return const Stream.empty();
+
+  return ref.watch(userRepositoryProvider).watchUsersForDirectory(
+        uid: session.uid,
+        createdByUserId: session.createdByUserId,
+      );
+});

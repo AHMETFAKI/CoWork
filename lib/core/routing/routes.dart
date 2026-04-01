@@ -15,7 +15,6 @@ class Routes {
   static const taskCreate = '/tasks/create';
   static const shifts = '/shifts';
   static const shiftCreate = '/shifts/create';
-  static const team = '/team';
   static const teamMember = '/team/member';
   static const auditLogs = '/audit-logs';
   static const settings = '/settings';

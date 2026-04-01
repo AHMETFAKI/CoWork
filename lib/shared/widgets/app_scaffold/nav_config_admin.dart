@@ -76,10 +76,4 @@ const List<NavItem> adminNavItems = [
       ),
     ],
   ),
-  NavItem(
-    label: 'Ekibim',
-    icon: Icons.groups_outlined,
-    selectedIcon: Icons.groups,
-    route: Routes.team,
-  ),
 ];

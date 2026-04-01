@@ -23,6 +23,19 @@ class DepartmentRepositoryImpl implements DepartmentRepository {
   }
 
   @override
+  Stream<List<Department>> watchDepartmentsForDirectory({
+    required String uid,
+    required String? createdByUserId,
+  }) {
+    return remote
+        .watchDepartmentsForDirectory(
+          uid: uid,
+          createdByUserId: createdByUserId,
+        )
+        .map((items) => items.map((model) => model.toEntity()).toList());
+  }
+
+  @override
   Future<void> createDepartment({
     required String name,
     required String description,

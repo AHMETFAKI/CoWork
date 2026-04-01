@@ -34,7 +34,7 @@ class Guards {
       return role == AppRole.admin;
     }
     if (location.startsWith(Routes.requests)) return true;
-    if (location.startsWith(Routes.team)) return true;
+    if (location.startsWith(Routes.teamMember)) return true;
     if (location.startsWith(Routes.tasks)) return true;
     if (location.startsWith(Routes.shifts)) return true;
     if (location.startsWith(Routes.users)) return true;

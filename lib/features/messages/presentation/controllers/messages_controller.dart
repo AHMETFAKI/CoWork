@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cowork/core/di/app_providers.dart';
+import 'package:cowork/features/messages/domain/entities/chat_conversation_summary.dart';
 import 'package:cowork/features/messages/domain/entities/chat_message.dart';
 import 'package:cowork/features/messages/domain/repositories/messages_repository.dart';
 
@@ -19,6 +20,12 @@ final messagesStreamProvider =
     StreamProvider.family<List<ChatMessage>, String>((ref, conversationId) {
       return ref.watch(messagesRepositoryProvider).watchMessages(conversationId);
     });
+
+final conversationsStreamProvider = StreamProvider<List<ChatConversationSummary>>((ref) {
+  final session = ref.watch(sessionProvider).asData?.value;
+  if (session == null) return const Stream.empty();
+  return ref.watch(messagesRepositoryProvider).watchConversations(session.uid);
+});
 
 final messagesControllerProvider =
     AsyncNotifierProvider<MessagesController, void>(MessagesController.new);

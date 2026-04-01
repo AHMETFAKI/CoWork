@@ -7,6 +7,11 @@ abstract class DepartmentRepository {
     required String? departmentId,
   });
 
+  Stream<List<Department>> watchDepartmentsForDirectory({
+    required String uid,
+    required String? createdByUserId,
+  });
+
   Future<void> createDepartment({
     required String name,
     required String description,

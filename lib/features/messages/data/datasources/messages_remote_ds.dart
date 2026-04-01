@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:cowork/features/messages/data/models/chat_conversation_summary_model.dart';
 import 'package:cowork/features/messages/data/models/chat_message_model.dart';
 
 class MessagesRemoteDataSource {
@@ -48,6 +49,25 @@ class MessagesRemoteDataSource {
         .orderBy('created_at')
         .snapshots()
         .map((snapshot) => snapshot.docs.map(ChatMessageModel.fromDoc).toList());
+  }
+
+  Stream<List<ChatConversationSummaryModel>> watchConversations(String currentUserId) {
+    return firestore
+        .collection('conversations')
+        .where('participant_ids', arrayContains: currentUserId)
+        .snapshots()
+        .map((snapshot) {
+      final items = snapshot.docs.map(ChatConversationSummaryModel.fromDoc).toList();
+      items.sort((a, b) {
+        final aAt = a.lastMessageAt;
+        final bAt = b.lastMessageAt;
+        if (aAt == null && bAt == null) return 0;
+        if (aAt == null) return 1;
+        if (bAt == null) return -1;
+        return bAt.compareTo(aAt);
+      });
+      return items;
+    });
   }
 
   Future<void> sendMessage({
